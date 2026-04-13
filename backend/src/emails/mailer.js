@@ -1,3 +1,5 @@
+const nodemailer = require("nodemailer");
+
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
   port: 587,
