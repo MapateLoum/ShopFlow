@@ -66,6 +66,17 @@ Au Sénégal, beaucoup de vendeurs gèrent leurs ventes uniquement via WhatsApp 
 - Responsive mobile-first
 - Polices : Inter + Plus Jakarta Sans
 
+## 🚀 Déploiement
+
+### Frontend — Vercel
+L'application est déployée sur **Vercel**.
+- Dossier racine configuré sur `frontend/`
+- Les variables d'environnement (URL de l'API) sont définies dans le dashboard Vercel
+
+### Backend — Render
+L'API est hébergée sur **Render**.
+- Base de données : MongoDB Atlas
+- Les variables d'environnement sont configurées dans le dashboard Render
 ---
 
 Projet développé avec ❤️ pour le marché sénégalais.
