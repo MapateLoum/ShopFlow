@@ -26,9 +26,10 @@ const activateSeller = async (req, res) => {
 
     await sendWelcomeEmail(seller.email, seller.name, seller.store.slug);
     res.json({ success: true, message: "Vendeur activé avec succès" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Erreur" });
-  }
+ } catch (err) {
+  console.error("ADMIN LOGIN ERROR:", err); // ← ajoute ça
+  res.status(500).json({ success: false, message: err.message }); // ← renvoie le vrai message
+}
 };
 
 // Suspendre un vendeur
