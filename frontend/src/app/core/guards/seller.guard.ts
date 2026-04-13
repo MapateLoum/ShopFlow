@@ -1,0 +1,1 @@
+export { sellerGuard } from './auth.guard';

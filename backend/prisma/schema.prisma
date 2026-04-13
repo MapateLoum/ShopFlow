@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model SuperAdmin {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("super_admins")
+}
+
+model Seller {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String         @unique
+  phone        String
+  passwordHash String
+  status       SellerStatus   @default(PENDING)
+  otpCode      String?
+  otpExpiresAt DateTime?
+  isVerified   Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  store        Store?
+  notifications Notification[]
+
+  @@map("sellers")
+}
+
+model Store {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  slug               String    @unique
+  description        String?
+  logoUrl            String?
+  bannerUrl          String?
+  primaryColor       String    @default("#6C63FF")
+  waveBusinessNumber String?
+  status             StoreStatus @default(INACTIVE)
+  sellerId           String    @unique @db.ObjectId
+  seller             Seller    @relation(fields: [sellerId], references: [id])
+  products           Product[]
+  orders             Order[]
+  createdAt          DateTime  @default(now())
+
+  @@map("stores")
+}
+
+model Product {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Float
+  stock       Int         @default(0)
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  storeId     String      @db.ObjectId
+  store       Store       @relation(fields: [storeId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("products")
+}
+
+model Client {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String
+  phone     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+
+  @@map("clients")
+}
+
+model Order {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  storeId       String      @db.ObjectId
+  store         Store       @relation(fields: [storeId], references: [id])
+  clientId      String      @db.ObjectId
+  client        Client      @relation(fields: [clientId], references: [id])
+  totalAmount   Float
+  status        OrderStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentRef    String?
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String  @db.ObjectId
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+
+  @@map("order_items")
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId  String   @db.ObjectId
+  seller    Seller   @relation(fields: [sellerId], references: [id])
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum SellerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum StoreStatus {
+  INACTIVE
+  ACTIVE
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}

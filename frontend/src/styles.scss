@@ -1,0 +1,212 @@
+@use '@angular/material' as mat;
+@include mat.core();
+
+// ── Palette ShopFlow ─────────────────────────────────────────────────────────
+$primary-palette: mat.define-palette((
+  50: #f0effe, 100: #d5d1fc, 200: #b8b2f9, 300: #9a93f7,
+  400: #7d74f4, 500: #6C63FF, 600: #5a52d5, 700: #4840ab,
+  800: #362f82, 900: #241e58,
+  contrast: (500: white, 600: white, 700: white, 800: white, 900: white)
+), 500, 300, 700);
+
+$accent-palette: mat.define-palette((
+  50: #e0f9f7, 100: #b3f0eb, 200: #80e6dd, 300: #4ddacf,
+  400: #26d0c4, 500: #4ECDC4, 600: #00b4a8, 700: #00978c,
+  800: #007a71, 900: #005d56,
+  contrast: (500: white, 600: white)
+), 500, 300, 700);
+
+$shopflow-theme: mat.define-light-theme((
+  color: (primary: $primary-palette, accent: $accent-palette),
+  typography: mat.define-typography-config($font-family: "'Inter', sans-serif"),
+  density: 0,
+));
+
+@include mat.all-component-themes($shopflow-theme);
+
+// ── Variables CSS ─────────────────────────────────────────────────────────────
+:root {
+  --primary: #6C63FF;
+  --primary-light: #8b85ff;
+  --primary-dark: #4840ab;
+  --accent: #4ECDC4;
+  --accent-light: #7edcd6;
+  --bg: #f8f7ff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border: #e5e7eb;
+  --shadow-sm: 0 1px 3px rgba(108,99,255,0.08);
+  --shadow-md: 0 4px 16px rgba(108,99,255,0.12);
+  --shadow-lg: 0 8px 32px rgba(108,99,255,0.16);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --font: 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ── Reset & Base ──────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+// ── Scrollbar ─────────────────────────────────────────────────────────────────
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+// ── Typography ────────────────────────────────────────────────────────────────
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+// ── Cards ─────────────────────────────────────────────────────────────────────
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  &:hover { box-shadow: var(--shadow-md); }
+}
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 24px;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,99,255,0.35); }
+  &:active { transform: translateY(0); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 10px 22px;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition);
+  &:hover { background: var(--primary); color: white; transform: translateY(-1px); }
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  &:hover { background: #dc2626; color: white; }
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+.badge {
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  &.badge-pending   { background: #fef3c7; color: #d97706; }
+  &.badge-active    { background: #d1fae5; color: #065f46; }
+  &.badge-suspended { background: #fee2e2; color: #991b1b; }
+  &.badge-confirmed { background: #dbeafe; color: #1e40af; }
+  &.badge-delivered { background: #d1fae5; color: #065f46; }
+  &.badge-cancelled { background: #fee2e2; color: #991b1b; }
+  &.badge-shipping  { background: #ede9fe; color: #5b21b6; }
+}
+
+// ── Form fields Angular Material overrides ─────────────────────────────────────
+.mat-mdc-form-field {
+  width: 100%;
+  .mat-mdc-text-field-wrapper { border-radius: var(--radius-md) !important; }
+}
+
+// ── Animations ────────────────────────────────────────────────────────────────
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.5s ease both; }
+.animate-fade-in    { animation: fadeIn 0.4s ease both; }
+.animate-float      { animation: float 3s ease-in-out infinite; }
+
+// Skeleton loading
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+// ── Responsive utilities ───────────────────────────────────────────────────────
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .container { padding: 0 16px; }
+}
+@media (min-width: 769px) {
+  .hide-desktop { display: none !important; }
+}
+
+// ── Snackbar / Toast ──────────────────────────────────────────────────────────
+.snack-success .mdc-snackbar__surface { background: #065f46 !important; }
+.snack-error   .mdc-snackbar__surface { background: #991b1b !important; }
+
+// ── Material overrides ────────────────────────────────────────────────────────
+.mat-mdc-dialog-container { border-radius: var(--radius-xl) !important; }
+.mat-mdc-card { border-radius: var(--radius-lg) !important; }
