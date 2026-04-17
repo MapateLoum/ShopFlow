@@ -21,14 +21,16 @@ import { environment } from '../../../../environments/environment';
     <div class="settings-grid" *ngIf="store()">
       <!-- Preview carte -->
       <div class="preview-card" [style.--store-color]="form.get('primaryColor')?.value">
-        <div class="store-banner" [style.background]="form.get('primaryColor')?.value + '33'">
-          <img *ngIf="bannerPreview() || store()?.bannerUrl" [src]="bannerPreview() || store()?.bannerUrl" class="banner-img">
-          <div *ngIf="!bannerPreview() && !store()?.bannerUrl" class="banner-placeholder">🏪</div>
-        </div>
-        <div class="store-logo-wrap">
-          <div class="store-logo" [style.background]="form.get('primaryColor')?.value">
-            <img *ngIf="logoPreview() || store()?.logoUrl" [src]="logoPreview() || store()?.logoUrl" class="logo-img">
-            <span *ngIf="!logoPreview() && !store()?.logoUrl">{{store()?.name?.charAt(0)}}</span>
+        <div class="store-banner-wrap">
+          <div class="store-banner" [style.background]="form.get('primaryColor')?.value + '33'">
+            <img *ngIf="bannerPreview() || store()?.bannerUrl" [src]="bannerPreview() || store()?.bannerUrl" class="banner-img">
+            <div *ngIf="!bannerPreview() && !store()?.bannerUrl" class="banner-placeholder">🏪</div>
+          </div>
+          <div class="store-logo-wrap">
+            <div class="store-logo" [style.background]="form.get('primaryColor')?.value">
+              <img *ngIf="logoPreview() || store()?.logoUrl" [src]="logoPreview() || store()?.logoUrl" class="logo-img">
+              <span *ngIf="!logoPreview() && !store()?.logoUrl">{{store()?.name?.charAt(0)}}</span>
+            </div>
           </div>
         </div>
         <div class="store-preview-info">
@@ -95,12 +97,16 @@ import { environment } from '../../../../environments/environment';
     .page-header p { color: var(--text-secondary); font-size: 14px; }
     .settings-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
     .preview-card { background: white; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border); height: fit-content; position: sticky; top: 80px; }
+
+    /* ✅ CORRECTION : wrapper relatif pour positionner le logo sur la bannière */
+    .store-banner-wrap { position: relative; padding-bottom: 40px; }
     .store-banner { height: 120px; position: relative; overflow: hidden; }
     .banner-img { width: 100%; height: 100%; object-fit: cover; }
     .banner-placeholder { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-    .store-logo-wrap { display: flex; justify-content: center; margin-top: -32px; }
+    .store-logo-wrap { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
     .store-logo { width: 64px; height: 64px; border-radius: 16px; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: white; overflow: hidden; }
     .logo-img { width: 100%; height: 100%; object-fit: cover; }
+
     .store-preview-info { padding: 16px; text-align: center; }
     .store-preview-info strong { display: block; font-size: 16px; margin-bottom: 6px; }
     .store-preview-info p { color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }

@@ -14,14 +14,19 @@ import { OrderService } from '../../../core/services/order.service';
   <div class="store-page" *ngIf="store(); else loading">
     <!-- Header boutique -->
     <div class="store-header">
-      <div class="banner" [style.background]="store().primaryColor + '22'">
-        <img *ngIf="store().bannerUrl" [src]="store().bannerUrl" [alt]="store().name" class="banner-img">
-      </div>
-      <div class="header-content">
+      <!-- ✅ Wrapper relatif pour positionner le logo sur la bannière -->
+      <div class="banner-wrap">
+        <div class="banner" [style.background]="store().primaryColor + '22'">
+          <img *ngIf="store().bannerUrl" [src]="store().bannerUrl" [alt]="store().name" class="banner-img">
+        </div>
+        <!-- Logo positionné en absolu, au bas de la bannière -->
         <div class="store-logo" [style.background]="store().primaryColor">
           <img *ngIf="store().logoUrl" [src]="store().logoUrl" [alt]="store().name">
           <span *ngIf="!store().logoUrl">{{store().name.charAt(0)}}</span>
         </div>
+      </div>
+
+      <div class="header-content">
         <div class="store-meta">
           <h1>{{store().name}}</h1>
           <p>{{store().description}}</p>
@@ -164,15 +169,39 @@ import { OrderService } from '../../../core/services/order.service';
   styles: [`
     .store-page { min-height: 100vh; background: var(--bg); }
     .store-header { margin-bottom: 0; }
+
+    /* ✅ CORRECTION : wrapper relatif pour positionner le logo */
+    .banner-wrap { position: relative; padding-bottom: 50px; }
     .banner { height: 200px; position: relative; overflow: hidden; }
     .banner-img { width: 100%; height: 100%; object-fit: cover; }
-    .header-content { background: white; padding: 0 5% 20px; display: flex; align-items: flex-end; gap: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .store-logo { width: 80px; height: 80px; border-radius: 20px; border: 4px solid white; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 28px; overflow: hidden; margin-top: -40px; flex-shrink: 0; box-shadow: var(--shadow-md); }
+
+    /* ✅ Logo en absolu, centré à gauche (style profil) au bas de la bannière */
+    .store-logo {
+      position: absolute;
+      bottom: 0;
+      left: 5%;
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      border: 4px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 28px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-md);
+    }
     .store-logo img { width: 100%; height: 100%; object-fit: cover; }
-    .store-meta { flex: 1; padding-top: 8px; }
+
+    /* header-content n'a plus besoin de gérer le logo */
+    .header-content { background: white; padding: 12px 5% 20px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .store-meta { flex: 1; }
     .store-meta h1 { font-size: 22px; margin-bottom: 4px; }
     .store-meta p { color: var(--text-secondary); font-size: 14px; }
-    .cart-btn-wrap { margin-left: auto; padding-top: 8px; }
+    .cart-btn-wrap { margin-left: auto; }
     .cart-btn { color: white; border: none; border-radius: var(--radius-md); padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; position: relative; }
     .cart-count { background: white; color: #333; border-radius: 99px; font-size: 11px; font-weight: 800; padding: 2px 7px; }
     .store-body { padding: 32px 5%; }
