@@ -14,12 +14,10 @@ import { OrderService } from '../../../core/services/order.service';
   <div class="store-page" *ngIf="store(); else loading">
     <!-- Header boutique -->
     <div class="store-header">
-      <!-- ✅ Wrapper relatif pour positionner le logo sur la bannière -->
       <div class="banner-wrap">
         <div class="banner" [style.background]="store().primaryColor + '22'">
           <img *ngIf="store().bannerUrl" [src]="store().bannerUrl" [alt]="store().name" class="banner-img">
         </div>
-        <!-- Logo positionné en absolu, au bas de la bannière -->
         <div class="store-logo" [style.background]="store().primaryColor">
           <img *ngIf="store().logoUrl" [src]="store().logoUrl" [alt]="store().name">
           <span *ngIf="!store().logoUrl">{{store().name.charAt(0)}}</span>
@@ -112,39 +110,159 @@ import { OrderService } from '../../../core/services/order.service';
       </div>
     </div>
 
-    <!-- Formulaire commande -->
+    <!-- ══════════════════════════════════════════
+         MODAL CHECKOUT
+    ══════════════════════════════════════════ -->
     <div class="modal-overlay" *ngIf="showCheckout()" (click)="showCheckout.set(false)">
       <div class="checkout-modal" (click)="$event.stopPropagation()">
+
+        <!-- En-tête -->
         <div class="checkout-header">
-          <h3>Finaliser la commande</h3>
-          <button (click)="showCheckout.set(false)">✕</button>
+          <div class="checkout-title">
+            <div class="checkout-step-badge">Étape {{checkoutStep()}} / 2</div>
+            <h3>{{checkoutStep() === 1 ? 'Vos informations' : 'Paiement Wave'}}</h3>
+          </div>
+          <button class="modal-close-btn" (click)="showCheckout.set(false)">✕</button>
         </div>
-        <form [formGroup]="checkoutForm" (ngSubmit)="placeOrder()">
+
+        <!-- ── ÉTAPE 1 : Récapitulatif + Formulaire ── -->
+        <div *ngIf="checkoutStep() === 1">
+          <!-- Récapitulatif commande -->
           <div class="checkout-summary">
+            <div class="summary-label">Récapitulatif</div>
             <div *ngFor="let item of cart()" class="summary-item">
-              <span>{{item.name}} × {{item.qty}}</span>
+              <span class="summary-item-name">{{item.name}} <em>× {{item.qty}}</em></span>
               <span>{{(item.price * item.qty).toLocaleString()}} FCFA</span>
             </div>
             <div class="summary-total">
-              <strong>Total</strong>
-              <strong [style.color]="store().primaryColor">{{cartTotal().toLocaleString()}} FCFA</strong>
+              <strong>Total à payer</strong>
+              <strong class="summary-amount" [style.color]="store().primaryColor">{{cartTotal().toLocaleString()}} FCFA</strong>
             </div>
           </div>
-          <div class="field"><label>Nom complet *</label><input formControlName="clientName" placeholder="Votre nom"></div>
-          <div class="field"><label>Email *</label><input formControlName="clientEmail" type="email" placeholder="votre@email.com"></div>
-          <div class="field"><label>Téléphone</label><input formControlName="clientPhone" placeholder="+221 77 000 00 00" type="tel"></div>
 
-          <div class="wave-info" *ngIf="store().waveBusinessNumber">
-            <div class="wave-header">💳 Paiement Wave Business</div>
-            <p>Envoyez <strong>{{cartTotal().toLocaleString()}} FCFA</strong> au numéro :</p>
-            <div class="wave-number">{{store().waveBusinessNumber}}</div>
-            <p class="wave-note">Passez d'abord la commande, puis effectuez le paiement Wave.</p>
+          <!-- Formulaire -->
+          <form [formGroup]="checkoutForm" (ngSubmit)="goToPaymentStep()">
+            <div class="fields-grid">
+              <div class="field">
+                <label>Nom complet *</label>
+                <input formControlName="clientName" placeholder="Ex : Aminata Diallo">
+              </div>
+              <div class="field">
+                <label>Email *</label>
+                <input formControlName="clientEmail" type="email" placeholder="votre@email.com">
+              </div>
+              <div class="field field-full">
+                <label>Téléphone</label>
+                <input formControlName="clientPhone" placeholder="+221 77 000 00 00" type="tel">
+              </div>
+            </div>
+
+            <button
+              class="btn-next"
+              [style.background]="store().primaryColor"
+              type="submit"
+              [disabled]="checkoutForm.invalid">
+              Continuer vers le paiement →
+            </button>
+          </form>
+        </div>
+
+        <!-- ── ÉTAPE 2 : Instructions Wave ── -->
+        <div *ngIf="checkoutStep() === 2" class="wave-step">
+
+          <!-- Carte Wave principale -->
+          <div class="wave-card">
+            <!-- Logo Wave + titre -->
+            <div class="wave-card-header">
+              <div class="wave-logo-wrap">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <rect width="32" height="32" rx="10" fill="#1BA8F0"/>
+                  <path d="M7 16C7 16 10 10 13 16C16 22 19 10 22 16C25 22 25 16 25 16" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                  <span class="wave-card-title">Paiement Wave</span>
+                  <span class="wave-card-sub">Transfert mobile sécurisé</span>
+                </div>
+              </div>
+              <div class="wave-amount-pill" [style.background]="store().primaryColor">
+                {{cartTotal().toLocaleString()}} FCFA
+              </div>
+            </div>
+
+            <!-- Steps visuels -->
+            <div class="wave-steps">
+              <div class="wave-step-item">
+                <div class="wave-step-num">1</div>
+                <div class="wave-step-text">
+                  <strong>Ouvrez Wave</strong>
+                  <span>Lancez l'application Wave sur votre téléphone</span>
+                </div>
+              </div>
+              <div class="wave-step-divider"></div>
+              <div class="wave-step-item">
+                <div class="wave-step-num">2</div>
+                <div class="wave-step-text">
+                  <strong>Envoyez le montant</strong>
+                  <span>Transférez exactement <b>{{cartTotal().toLocaleString()}} FCFA</b> au numéro ci-dessous</span>
+                </div>
+              </div>
+              <div class="wave-step-divider"></div>
+              <div class="wave-step-item">
+                <div class="wave-step-num">3</div>
+                <div class="wave-step-text">
+                  <strong>Confirmez la commande</strong>
+                  <span>Une fois le paiement envoyé, cliquez sur "Confirmer"</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Numéro Wave mis en avant -->
+            <div class="wave-number-block" *ngIf="store().waveBusinessNumber">
+              <span class="wave-number-label">Numéro Wave du vendeur</span>
+              <div class="wave-number-display">
+                <div class="wave-num-icon">
+                  <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="10" fill="#1BA8F0"/>
+                    <path d="M7 16C7 16 10 10 13 16C16 22 19 10 22 16C25 22 25 16 25 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <span class="wave-number-value">{{store().waveBusinessNumber}}</span>
+                <button class="copy-btn" (click)="copyNumber()" [class.copied]="copied()">
+                  <span *ngIf="!copied()">📋 Copier</span>
+                  <span *ngIf="copied()">✅ Copié !</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Avertissement si pas de numéro Wave -->
+            <div class="wave-no-number" *ngIf="!store().waveBusinessNumber">
+              <span>⚠️</span>
+              <p>Ce vendeur n'a pas encore configuré son numéro Wave. Contactez-le directement.</p>
+            </div>
+
+            <!-- Note importante -->
+            <div class="wave-note-box">
+              <span>💡</span>
+              <p>Votre commande sera traitée dès réception du paiement. Conservez votre confirmation Wave comme preuve.</p>
+            </div>
           </div>
 
-          <button class="btn-primary w-full" [style.background]="store().primaryColor" type="submit" [disabled]="checkoutForm.invalid || ordering()">
-            {{ordering() ? 'Traitement...' : 'Confirmer la commande 🛒'}}
-          </button>
-        </form>
+          <!-- Boutons -->
+          <div class="wave-actions">
+            <button class="btn-back" (click)="checkoutStep.set(1)">← Retour</button>
+            <button
+              class="btn-confirm"
+              [style.background]="store().primaryColor"
+              (click)="placeOrder()"
+              [disabled]="ordering()">
+              <span *ngIf="!ordering()">✅ J'ai payé, confirmer</span>
+              <span *ngIf="ordering()" class="btn-loading">
+                <span class="btn-spinner"></span> Traitement...
+              </span>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -167,43 +285,23 @@ import { OrderService } from '../../../core/services/order.service';
   </div>
   `,
   styles: [`
+    /* ── Base ── */
     .store-page { min-height: 100vh; background: var(--bg); }
     .store-header { margin-bottom: 0; }
-
-    /* ✅ CORRECTION : wrapper relatif pour positionner le logo */
     .banner-wrap { position: relative; padding-bottom: 50px; }
     .banner { height: 200px; position: relative; overflow: hidden; }
     .banner-img { width: 100%; height: 100%; object-fit: cover; }
-
-    /* ✅ Logo en absolu, centré à gauche (style profil) au bas de la bannière */
-    .store-logo {
-      position: absolute;
-      bottom: 0;
-      left: 5%;
-      width: 80px;
-      height: 80px;
-      border-radius: 20px;
-      border: 4px solid white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      color: white;
-      font-size: 28px;
-      overflow: hidden;
-      flex-shrink: 0;
-      box-shadow: var(--shadow-md);
-    }
+    .store-logo { position: absolute; bottom: 0; left: 5%; width: 80px; height: 80px; border-radius: 20px; border: 4px solid white; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 28px; overflow: hidden; flex-shrink: 0; box-shadow: var(--shadow-md); }
     .store-logo img { width: 100%; height: 100%; object-fit: cover; }
-
-    /* header-content n'a plus besoin de gérer le logo */
     .header-content { background: white; padding: 12px 5% 20px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     .store-meta { flex: 1; }
     .store-meta h1 { font-size: 22px; margin-bottom: 4px; }
     .store-meta p { color: var(--text-secondary); font-size: 14px; }
     .cart-btn-wrap { margin-left: auto; }
-    .cart-btn { color: white; border: none; border-radius: var(--radius-md); padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; position: relative; }
+    .cart-btn { color: white; border: none; border-radius: var(--radius-md); padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
     .cart-count { background: white; color: #333; border-radius: 99px; font-size: 11px; font-weight: 800; padding: 2px 7px; }
+
+    /* ── Produits ── */
     .store-body { padding: 32px 5%; }
     .products-header { margin-bottom: 24px; }
     .products-header h2 { font-size: 20px; }
@@ -224,6 +322,8 @@ import { OrderService } from '../../../core/services/order.service';
     .add-btn:hover { opacity: 0.85; }
     .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .empty { text-align: center; padding: 60px; color: var(--text-secondary); }
+
+    /* ── Panier drawer ── */
     .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150; }
     .cart-drawer { position: fixed; top: 0; right: -400px; width: 380px; height: 100vh; background: white; z-index: 200; display: flex; flex-direction: column; transition: right 0.3s ease; box-shadow: var(--shadow-lg); }
     .cart-drawer.open { right: 0; }
@@ -246,24 +346,254 @@ import { OrderService } from '../../../core/services/order.service';
     .cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 16px; }
     .cart-total strong { font-size: 18px; font-family: var(--font-display); }
     .checkout-btn { width: 100%; color: white; border: none; border-radius: var(--radius-md); padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: flex-end; justify-content: center; }
-    .checkout-modal { background: white; border-radius: var(--radius-xl) var(--radius-xl) 0 0; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 28px 24px; }
-    .checkout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .checkout-header h3 { font-size: 20px; }
-    .checkout-header button { background: none; border: none; font-size: 20px; cursor: pointer; }
-    .checkout-summary { background: var(--bg); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; }
-    .summary-item { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
-    .summary-total { display: flex; justify-content: space-between; padding-top: 10px; font-size: 16px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-    .field input { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: var(--radius-md); font-family: var(--font); font-size: 14px; outline: none; transition: var(--transition); }
+
+    /* ══════════════════════════════════════════
+       MODAL CHECKOUT
+    ══════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+
+    .checkout-modal {
+      background: white;
+      border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 580px;
+      max-height: 92vh; overflow-y: auto;
+      padding: 0 0 32px;
+      animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* En-tête modal */
+    .checkout-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: white; z-index: 2;
+      border-radius: 24px 24px 0 0;
+    }
+    .checkout-step-badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .checkout-title h3 { font-size: 20px; font-weight: 700; }
+    .modal-close-btn {
+      width: 32px; height: 32px;
+      background: var(--bg); border: none;
+      border-radius: 50%; font-size: 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .modal-close-btn:hover { background: var(--border); }
+
+    /* ── Étape 1 : Formulaire ── */
+    .checkout-summary {
+      background: #f8f7ff; border-radius: 16px;
+      padding: 16px; margin: 20px 24px 0;
+    }
+    .summary-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .summary-item {
+      display: flex; justify-content: space-between;
+      font-size: 14px; padding: 6px 0;
+      color: var(--text-secondary);
+      border-bottom: 1px dashed var(--border);
+    }
+    .summary-item-name em { font-style: normal; color: var(--text-secondary); font-size: 13px; }
+    .summary-total {
+      display: flex; justify-content: space-between;
+      padding-top: 12px; font-size: 15px;
+    }
+    .summary-amount { font-size: 18px; font-family: var(--font-display); }
+    .fields-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px; padding: 20px 24px 0;
+    }
+    .field-full { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+    .field input {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: var(--font); font-size: 14px;
+      outline: none; transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
     .field input:focus { border-color: var(--primary); }
-    .wave-info { background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; }
-    .wave-header { font-weight: 700; margin-bottom: 8px; color: #166534; }
-    .wave-info p { font-size: 13px; color: #166534; margin-bottom: 4px; }
-    .wave-number { font-size: 20px; font-weight: 800; color: #166534; text-align: center; padding: 8px; background: white; border-radius: 8px; margin: 8px 0; }
-    .wave-note { font-size: 12px; color: #4ade80; }
-    .w-full { width: 100%; justify-content: center; }
+    .btn-next {
+      display: block; width: calc(100% - 48px);
+      margin: 20px 24px 0;
+      color: white; border: none; border-radius: var(--radius-md);
+      padding: 15px; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-next:hover:not(:disabled) { opacity: 0.88; }
+    .btn-next:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ══════════════════════════════════════════
+       ÉTAPE 2 — WAVE PAYMENT CARD
+    ══════════════════════════════════════════ */
+    .wave-step { padding: 20px 24px 0; }
+
+    .wave-card {
+      background: linear-gradient(145deg, #f0f9ff, #e0f2fe);
+      border: 1.5px solid #bae6fd;
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    /* Header de la carte */
+    .wave-card-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .wave-logo-wrap {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .wave-card-title {
+      display: block;
+      font-weight: 700; font-size: 16px; color: #0c4a6e;
+    }
+    .wave-card-sub {
+      display: block;
+      font-size: 12px; color: #0369a1;
+    }
+    .wave-amount-pill {
+      color: white; border-radius: 99px;
+      padding: 8px 18px; font-size: 16px; font-weight: 800;
+      font-family: var(--font-display);
+      white-space: nowrap;
+    }
+
+    /* Steps visuels */
+    .wave-steps {
+      display: flex; flex-direction: column; gap: 0;
+      margin-bottom: 24px;
+    }
+    .wave-step-item {
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .wave-step-divider {
+      width: 2px; height: 16px;
+      background: #93c5fd;
+      margin-left: 15px; /* centré sur le numéro */
+    }
+    .wave-step-num {
+      width: 32px; height: 32px; flex-shrink: 0;
+      background: #1BA8F0; color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+    }
+    .wave-step-text strong {
+      display: block; font-size: 14px; color: #0c4a6e;
+      margin-bottom: 2px;
+    }
+    .wave-step-text span {
+      font-size: 13px; color: #0369a1; line-height: 1.4;
+    }
+    .wave-step-text b { font-weight: 700; }
+
+    /* Numéro Wave */
+    .wave-number-block { margin-bottom: 16px; }
+    .wave-number-label {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #0369a1; margin-bottom: 8px;
+    }
+    .wave-number-display {
+      display: flex; align-items: center; gap: 12px;
+      background: white; border-radius: 14px;
+      padding: 14px 16px;
+      border: 1.5px solid #bae6fd;
+      box-shadow: 0 2px 8px rgba(27,168,240,0.1);
+    }
+    .wave-num-icon { flex-shrink: 0; }
+    .wave-number-value {
+      flex: 1; font-size: 20px; font-weight: 800;
+      color: #0c4a6e; letter-spacing: 0.04em;
+      font-family: var(--font-display);
+    }
+    .copy-btn {
+      background: #e0f2fe; border: none;
+      border-radius: 10px; padding: 8px 14px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      color: #0369a1; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: #bae6fd; }
+    .copy-btn.copied { background: #dcfce7; color: #15803d; }
+
+    /* Avertissement pas de numéro */
+    .wave-no-number {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: #fef9c3; border: 1px solid #fde047;
+      border-radius: 12px; padding: 14px;
+      margin-bottom: 16px;
+    }
+    .wave-no-number p { font-size: 13px; color: #713f12; line-height: 1.5; }
+
+    /* Note */
+    .wave-note-box {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(255,255,255,0.7); border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid #bae6fd;
+    }
+    .wave-note-box p { font-size: 13px; color: #0369a1; line-height: 1.5; }
+
+    /* Boutons actions */
+    .wave-actions {
+      display: flex; gap: 12px;
+    }
+    .btn-back {
+      flex: 0 0 auto;
+      padding: 14px 20px;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      color: var(--text-secondary); transition: var(--transition);
+    }
+    .btn-back:hover { background: var(--border); }
+    .btn-confirm {
+      flex: 1;
+      color: white; border: none; border-radius: var(--radius-md);
+      padding: 14px; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-confirm:hover:not(:disabled) { opacity: 0.88; }
+    .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Spinner bouton */
+    .btn-loading { display: flex; align-items: center; gap: 8px; }
+    .btn-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    /* ── Loader / Success ── */
     .loading-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--text-secondary); }
     .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -272,34 +602,72 @@ import { OrderService } from '../../../core/services/order.service';
     .success-icon { font-size: 64px; margin-bottom: 20px; }
     .success-card h2 { font-size: 24px; margin-bottom: 12px; }
     .success-card p { color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6; }
-    @media (max-width: 480px) { .cart-drawer { width: 100%; right: -100%; } .checkout-modal { border-radius: var(--radius-xl) var(--radius-xl) 0 0; } }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .cart-drawer { width: 100%; right: -100%; }
+      .checkout-modal { border-radius: 20px 20px 0 0; }
+      .fields-grid { grid-template-columns: 1fr; }
+      .wave-card-header { flex-direction: column; align-items: flex-start; }
+      .wave-number-value { font-size: 18px; }
+    }
   `]
 })
 export class StoreComponent implements OnInit {
-  store = signal<any>(null);
-  cart = signal<any[]>([]);
-  showCart = signal(false);
+  store    = signal<any>(null);
+  cart     = signal<any[]>([]);
+  showCart     = signal(false);
   showCheckout = signal(false);
-  ordering = signal(false);
+  ordering     = signal(false);
   orderSuccess = signal(false);
+  checkoutStep = signal<1 | 2>(1);   // ← nouvelle étape
+  copied       = signal(false);
 
   cartCount = computed(() => this.cart().reduce((s, i) => s + i.qty, 0));
   cartTotal = computed(() => this.cart().reduce((s, i) => s + i.price * i.qty, 0));
 
   checkoutForm = this.fb.group({
-    clientName: ['', Validators.required],
+    clientName:  ['', Validators.required],
     clientEmail: ['', [Validators.required, Validators.email]],
     clientPhone: [''],
   });
 
-  constructor(private route: ActivatedRoute, private storeService: StoreService, private orderService: OrderService, private fb: FormBuilder, private snack: MatSnackBar) {}
+  constructor(
+    private route: ActivatedRoute,
+    private storeService: StoreService,
+    private orderService: OrderService,
+    private fb: FormBuilder,
+    private snack: MatSnackBar
+  ) {}
 
   ngOnInit() {
     const slug = this.route.snapshot.paramMap.get('slug')!;
     this.storeService.getStoreBySlug(slug).subscribe({
-      next: (res) => this.store.set(res.store),
-      error: () => this.snack.open('Boutique introuvable', '✕', { duration: 3000 }),
+      next:  (res) => this.store.set(res.store),
+      error: ()    => this.snack.open('Boutique introuvable', '✕', { duration: 3000 }),
     });
+  }
+
+  // Passe à l'étape Wave si formulaire valide
+  goToPaymentStep() {
+    if (this.checkoutForm.invalid) return;
+    this.checkoutStep.set(2);
+  }
+
+  // Copier le numéro Wave
+  copyNumber() {
+    const num = this.store()?.waveBusinessNumber;
+    if (!num) return;
+    navigator.clipboard.writeText(num).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2500);
+    });
+  }
+
+  // Réinitialise le checkout à la fermeture
+  closeCheckout() {
+    this.showCheckout.set(false);
+    this.checkoutStep.set(1);
   }
 
   inCart(id: string) { return this.cart().some(i => i.id === id); }
@@ -313,12 +681,16 @@ export class StoreComponent implements OnInit {
     }
   }
 
-  increaseQty(item: any) { this.cart.update(c => c.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)); }
+  increaseQty(item: any) {
+    this.cart.update(c => c.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
+  }
   decreaseQty(item: any) {
     if (item.qty <= 1) { this.removeFromCart(item.id); return; }
     this.cart.update(c => c.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i));
   }
-  removeFromCart(id: string) { this.cart.update(c => c.filter(i => i.id !== id)); }
+  removeFromCart(id: string) {
+    this.cart.update(c => c.filter(i => i.id !== id));
+  }
 
   placeOrder() {
     if (this.checkoutForm.invalid) return;
@@ -332,10 +704,11 @@ export class StoreComponent implements OnInit {
     this.orderService.createOrder(payload).subscribe({
       next: () => {
         this.cart.set([]);
-        this.showCheckout.set(false);
+        this.closeCheckout();
         this.orderSuccess.set(true);
         this.ordering.set(false);
         this.checkoutForm.reset();
+        this.checkoutStep.set(1);
       },
       error: (err) => {
         this.snack.open(err.error?.message || 'Erreur lors de la commande', '✕', { duration: 3000, panelClass: 'snack-error' });
