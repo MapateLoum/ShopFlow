@@ -15,7 +15,6 @@ import { environment } from '../../../../environments/environment';
   <div class="settings-page animate-fade-in">
     <div class="page-header">
       <div><h1>Ma boutique</h1><p>Personnalisez votre espace de vente</p></div>
-      <a [href]="storeUrl()" target="_blank" class="btn-outline" *ngIf="store()">Voir ma boutique →</a>
     </div>
 
     <div class="settings-grid" *ngIf="store()">

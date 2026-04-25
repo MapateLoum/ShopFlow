@@ -2,6 +2,10 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { StoreService } from '../../../core/services/store.service';
+import { OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { PollingService } from '../../../core/services/polling.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -188,8 +192,9 @@ import { StoreService } from '../../../core/services/store.service';
     }
   `]
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   stores = signal<any[]>([]);
+private sub!: Subscription;  
 
   mockProducts = [
     { emoji: '🧴', name: 'Lait de corps karité', price: '3 500 FCFA' },
@@ -206,12 +211,18 @@ export class HomeComponent implements OnInit {
     { icon: '🔔', title: 'Notifications', desc: 'Alertes instantanées à chaque nouvelle commande' },
   ];
 
-  constructor(private storeService: StoreService) {}
+  constructor(private storeService: StoreService, private polling: PollingService) {}
 
-  ngOnInit() {
-    this.storeService.getAllStores().subscribe({
-      next: (res) => this.stores.set(res.stores?.slice(0, 8) || []),
-      error: () => {},
-    });
-  }
+ ngOnInit() {
+  this.sub = this.polling.poll<any>(
+    `${environment.apiUrl}/public/stores`, 4000
+  ).subscribe({
+    next: (res) => this.stores.set(res.stores?.slice(0, 8) || []),
+    error: () => {},
+  });
+}
+
+ngOnDestroy() {
+  this.sub.unsubscribe();
+}
 }

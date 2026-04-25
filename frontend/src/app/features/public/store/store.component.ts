@@ -5,6 +5,10 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { StoreService } from '../../../core/services/store.service';
 import { OrderService } from '../../../core/services/order.service';
+import { OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { PollingService } from '../../../core/services/polling.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-store',
@@ -613,7 +617,7 @@ import { OrderService } from '../../../core/services/order.service';
     }
   `]
 })
-export class StoreComponent implements OnInit {
+export class StoreComponent implements OnInit, OnDestroy {
   store    = signal<any>(null);
   cart     = signal<any[]>([]);
   showCart     = signal(false);
@@ -622,6 +626,7 @@ export class StoreComponent implements OnInit {
   orderSuccess = signal(false);
   checkoutStep = signal<1 | 2>(1);   // ← nouvelle étape
   copied       = signal(false);
+  private sub!: Subscription;
 
   cartCount = computed(() => this.cart().reduce((s, i) => s + i.qty, 0));
   cartTotal = computed(() => this.cart().reduce((s, i) => s + i.price * i.qty, 0));
@@ -632,21 +637,28 @@ export class StoreComponent implements OnInit {
     clientPhone: [''],
   });
 
-  constructor(
-    private route: ActivatedRoute,
-    private storeService: StoreService,
-    private orderService: OrderService,
-    private fb: FormBuilder,
-    private snack: MatSnackBar
-  ) {}
+constructor(
+  private route: ActivatedRoute,
+  private storeService: StoreService,
+  private orderService: OrderService,
+  private fb: FormBuilder,
+  private snack: MatSnackBar,
+  private polling: PollingService   // ← ajoute ça
+) {}
 
-  ngOnInit() {
-    const slug = this.route.snapshot.paramMap.get('slug')!;
-    this.storeService.getStoreBySlug(slug).subscribe({
-      next:  (res) => this.store.set(res.store),
-      error: ()    => this.snack.open('Boutique introuvable', '✕', { duration: 3000 }),
-    });
-  }
+ngOnInit() {
+  const slug = this.route.snapshot.paramMap.get('slug')!;
+  this.sub = this.polling.poll<any>(
+    `${environment.apiUrl}/public/stores/${slug}`, 4000
+  ).subscribe({
+    next:  (res) => this.store.set(res.store),
+    error: () => this.snack.open('Boutique introuvable', '✕', { duration: 3000 }),
+  });
+}
+
+ngOnDestroy() {
+  this.sub.unsubscribe();
+}
 
   // Passe à l'étape Wave si formulaire valide
   goToPaymentStep() {
