@@ -42,7 +42,7 @@ model Store {
   logoUrl            String?
   bannerUrl          String?
   primaryColor       String    @default("#6C63FF")
-  waveBusinessNumber String?
+  wavePaymentLink    String?
   status             StoreStatus @default(INACTIVE)
   sellerId           String    @unique @db.ObjectId
   seller             Seller    @relation(fields: [sellerId], references: [id])
@@ -91,6 +91,7 @@ model Order {
   status        OrderStatus @default(PENDING)
   paymentStatus PaymentStatus @default(UNPAID)
   paymentRef    String?
+  paymentDeclaredAt DateTime?
   items         OrderItem[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -144,6 +145,7 @@ enum OrderStatus {
 
 enum PaymentStatus {
   UNPAID
+  AWAITING_VERIFICATION
   PAID
   REFUNDED
 }

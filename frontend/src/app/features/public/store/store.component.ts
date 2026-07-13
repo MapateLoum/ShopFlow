@@ -206,8 +206,8 @@ import { environment } from '../../../../environments/environment';
               <div class="wave-step-item">
                 <div class="wave-step-num">2</div>
                 <div class="wave-step-text">
-                  <strong>Envoyez le montant</strong>
-                  <span>Transférez exactement <b>{{cartTotal().toLocaleString()}} FCFA</b> au numéro ci-dessous</span>
+                  <strong>Scannez le QR</strong>
+                  <span>Envoyez exactement <b>{{cartTotal().toLocaleString()}} FCFA</b> via le QR ci-dessous</span>
                 </div>
               </div>
               <div class="wave-step-divider"></div>
@@ -215,39 +215,41 @@ import { environment } from '../../../../environments/environment';
                 <div class="wave-step-num">3</div>
                 <div class="wave-step-text">
                   <strong>Confirmez la commande</strong>
-                  <span>Une fois le paiement envoyé, cliquez sur "Confirmer"</span>
+                  <span>Une fois le paiement envoyé, cliquez sur "J'ai payé"</span>
                 </div>
               </div>
             </div>
 
-            <!-- Numéro Wave mis en avant -->
-            <div class="wave-number-block" *ngIf="store().waveBusinessNumber">
-              <span class="wave-number-label">Numéro Wave du vendeur</span>
-              <div class="wave-number-display">
-                <div class="wave-num-icon">
-                  <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="10" fill="#1BA8F0"/>
-                    <path d="M7 16C7 16 10 10 13 16C16 22 19 10 22 16C25 22 25 16 25 16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <span class="wave-number-value">{{store().waveBusinessNumber}}</span>
-                <button class="copy-btn" (click)="copyNumber()" [class.copied]="copied()">
-                  <span *ngIf="!copied()">📋 Copier</span>
-                  <span *ngIf="copied()">✅ Copié !</span>
-                </button>
-              </div>
+            <!-- QR code Wave -->
+            <div class="wave-qr-block" *ngIf="store().wavePaymentLink">
+              <span class="wave-number-label">Scannez pour payer</span>
+              <img
+                class="wave-qr-img"
+                [src]="waveQrSrc()"
+                alt="QR code de paiement Wave"
+                width="180"
+                height="180"
+              >
+              <a
+                class="wave-open-link"
+                [href]="store().wavePaymentLink"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Ouvrir dans Wave →
+              </a>
             </div>
 
-            <!-- Avertissement si pas de numéro Wave -->
-            <div class="wave-no-number" *ngIf="!store().waveBusinessNumber">
+            <!-- Avertissement si pas de lien Wave -->
+            <div class="wave-no-number" *ngIf="!store().wavePaymentLink">
               <span>⚠️</span>
-              <p>Ce vendeur n'a pas encore configuré son numéro Wave. Contactez-le directement.</p>
+              <p>Ce vendeur n'a pas encore configuré son paiement Wave. Contactez-le directement.</p>
             </div>
 
             <!-- Note importante -->
             <div class="wave-note-box">
               <span>💡</span>
-              <p>Votre commande sera traitée dès réception du paiement. Conservez votre confirmation Wave comme preuve.</p>
+              <p>Le vendeur vérifiera la réception du paiement sur son compte Wave avant de confirmer votre commande. Conservez votre confirmation Wave comme preuve en cas de besoin.</p>
             </div>
           </div>
 
@@ -515,35 +517,27 @@ import { environment } from '../../../../environments/environment';
     }
     .wave-step-text b { font-weight: 700; }
 
-    /* Numéro Wave */
-    .wave-number-block { margin-bottom: 16px; }
-    .wave-number-label {
-      display: block; font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      color: #0369a1; margin-bottom: 8px;
-    }
-    .wave-number-display {
-      display: flex; align-items: center; gap: 12px;
+    /* QR code Wave */
+    .wave-qr-block {
+      margin-bottom: 16px; text-align: center;
       background: white; border-radius: 14px;
-      padding: 14px 16px;
+      padding: 20px 16px;
       border: 1.5px solid #bae6fd;
       box-shadow: 0 2px 8px rgba(27,168,240,0.1);
     }
-    .wave-num-icon { flex-shrink: 0; }
-    .wave-number-value {
-      flex: 1; font-size: 20px; font-weight: 800;
-      color: #0c4a6e; letter-spacing: 0.04em;
-      font-family: var(--font-display);
+    .wave-number-label {
+      display: block; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #0369a1; margin-bottom: 12px;
     }
-    .copy-btn {
-      background: #e0f2fe; border: none;
-      border-radius: 10px; padding: 8px 14px;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      color: #0369a1; transition: all 0.2s;
-      white-space: nowrap;
+    .wave-qr-img {
+      border-radius: 10px; margin-bottom: 14px;
     }
-    .copy-btn:hover { background: #bae6fd; }
-    .copy-btn.copied { background: #dcfce7; color: #15803d; }
+    .wave-open-link {
+      display: block; font-size: 14px; font-weight: 700;
+      color: #0369a1; text-decoration: none;
+    }
+    .wave-open-link:hover { text-decoration: underline; }
 
     /* Avertissement pas de numéro */
     .wave-no-number {
@@ -613,7 +607,7 @@ import { environment } from '../../../../environments/environment';
       .checkout-modal { border-radius: 20px 20px 0 0; }
       .fields-grid { grid-template-columns: 1fr; }
       .wave-card-header { flex-direction: column; align-items: flex-start; }
-      .wave-number-value { font-size: 18px; }
+      .wave-qr-img { width: 150px; height: 150px; }
     }
   `]
 })
@@ -625,11 +619,15 @@ export class StoreComponent implements OnInit, OnDestroy {
   ordering     = signal(false);
   orderSuccess = signal(false);
   checkoutStep = signal<1 | 2>(1);   // ← nouvelle étape
-  copied       = signal(false);
   private sub!: Subscription;
 
   cartCount = computed(() => this.cart().reduce((s, i) => s + i.qty, 0));
   cartTotal = computed(() => this.cart().reduce((s, i) => s + i.price * i.qty, 0));
+  waveQrSrc = computed(() => {
+    const link = this.store()?.wavePaymentLink;
+    if (!link) return '';
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+  });
 
   checkoutForm = this.fb.group({
     clientName:  ['', Validators.required],
@@ -664,16 +662,6 @@ ngOnDestroy() {
   goToPaymentStep() {
     if (this.checkoutForm.invalid) return;
     this.checkoutStep.set(2);
-  }
-
-  // Copier le numéro Wave
-  copyNumber() {
-    const num = this.store()?.waveBusinessNumber;
-    if (!num) return;
-    navigator.clipboard.writeText(num).then(() => {
-      this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 2500);
-    });
   }
 
   // Réinitialise le checkout à la fermeture

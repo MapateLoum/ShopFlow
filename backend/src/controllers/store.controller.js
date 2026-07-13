@@ -15,11 +15,11 @@ const getMyStore = async (req, res) => {
 
 const updateStore = async (req, res) => {
   try {
-    const { name, description, primaryColor, waveBusinessNumber } = req.body;
+    const { name, description, primaryColor, wavePaymentLink } = req.body;
     const logoUrl = req.files?.logo?.[0]?.path;
     const bannerUrl = req.files?.banner?.[0]?.path;
 
-    const data = { name, description, primaryColor, waveBusinessNumber };
+    const data = { name, description, primaryColor, wavePaymentLink };
     if (logoUrl) data.logoUrl = logoUrl;
     if (bannerUrl) data.bannerUrl = bannerUrl;
 

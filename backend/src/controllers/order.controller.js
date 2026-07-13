@@ -33,12 +33,16 @@ const createOrder = async (req, res) => {
       });
     }
 
-    // Créer la commande
+    // Créer la commande — le client vient de voir le QR Wave et a cliqué
+    // "j'ai payé", donc on la marque tout de suite en attente de vérification
+    // (le vendeur confirme ensuite manuellement depuis son compte Wave)
     const order = await prisma.order.create({
       data: {
         storeId,
         clientId: client.id,
         totalAmount,
+        paymentStatus: "AWAITING_VERIFICATION",
+        paymentDeclaredAt: new Date(),
         items: {
           create: enrichedItems.map((i) => ({
             productId: i.productId,
@@ -107,6 +111,38 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+// Vendeur confirme avoir bien reçu le paiement sur son compte Wave
+const confirmPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findFirst({ where: { id, storeId: req.user.storeId } });
+    if (!order) return res.status(404).json({ success: false, message: "Commande introuvable" });
+    if (order.paymentStatus !== "AWAITING_VERIFICATION") {
+      return res.status(400).json({ success: false, message: "Ce paiement n'est pas en attente de vérification" });
+    }
+    const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "PAID" } });
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Erreur" });
+  }
+};
+
+// Vendeur n'a pas retrouvé le paiement sur son compte Wave
+const rejectPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findFirst({ where: { id, storeId: req.user.storeId } });
+    if (!order) return res.status(404).json({ success: false, message: "Commande introuvable" });
+    if (order.paymentStatus !== "AWAITING_VERIFICATION") {
+      return res.status(400).json({ success: false, message: "Ce paiement n'est pas en attente de vérification" });
+    }
+    const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "UNPAID" } });
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Erreur" });
+  }
+};
+
 // Stats vendeur
 const getOrderStats = async (req, res) => {
   try {
@@ -130,4 +166,4 @@ const getOrderStats = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getMyOrders, updateOrderStatus, getOrderStats };
+module.exports = { createOrder, getMyOrders, updateOrderStatus, getOrderStats, confirmPayment, rejectPayment };

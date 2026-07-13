@@ -22,4 +22,12 @@ export class OrderService {
   updateStatus(id: string, status: string) {
     return this.http.patch<any>(`${this.api}/orders/${id}/status`, { status });
   }
+
+  confirmPayment(id: string) {
+    return this.http.patch<any>(`${this.api}/orders/${id}/confirm-payment`, {});
+  }
+
+  rejectPayment(id: string) {
+    return this.http.patch<any>(`${this.api}/orders/${id}/reject-payment`, {});
+  }
 }

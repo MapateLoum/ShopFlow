@@ -53,8 +53,11 @@ import { environment } from '../../../../environments/environment';
             <textarea formControlName="description" rows="3" placeholder="Décrivez votre boutique..."></textarea>
           </div>
           <div class="field">
-            <label>Numéro Wave Business</label>
-            <input formControlName="waveBusinessNumber" placeholder="+221 77 000 00 00" type="tel">
+            <label>Lien de paiement Wave Business</label>
+            <input formControlName="wavePaymentLink" placeholder="https://pay.wave.com/m/M_sn_xxxxxxxx/c/sn/" type="url">
+            <small class="field-help">
+              Depuis l'app Wave Business : Recevoir → partager le lien de paiement. Collez-le tel quel ici — c'est ce lien qui génère le QR code que vos clients scanneront pour payer.
+            </small>
           </div>
           <div class="field">
             <label>Couleur principale</label>
@@ -116,6 +119,7 @@ import { environment } from '../../../../environments/environment';
     .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
     .field input, .field textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: var(--radius-md); font-family: var(--font); font-size: 14px; outline: none; transition: var(--transition); }
     .field input:focus, .field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(108,99,255,0.1); }
+    .field-help { display: block; margin-top: 6px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
     .color-row { display: flex; align-items: center; gap: 16px; }
     .color-input { width: 52px; height: 52px; border: 2px solid var(--border); border-radius: var(--radius-md); cursor: pointer; padding: 4px; }
     .color-presets { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -147,7 +151,7 @@ export class StoreSettingsComponent implements OnInit {
     name: ['', Validators.required],
     description: [''],
     primaryColor: ['#6C63FF'],
-    waveBusinessNumber: [''],
+    wavePaymentLink: [''],
   });
 
   constructor(private fb: FormBuilder, private storeService: StoreService, private snack: MatSnackBar) {}
@@ -162,7 +166,7 @@ export class StoreSettingsComponent implements OnInit {
           name: res.store.name,
           description: res.store.description,
           primaryColor: res.store.primaryColor,
-          waveBusinessNumber: res.store.waveBusinessNumber,
+          wavePaymentLink: res.store.wavePaymentLink,
         });
       },
     });

@@ -1,7 +1,10 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { OrderService } from '../../../core/services/order.service';
+import { PollingService } from '../../../core/services/polling.service';
+import { Subscription } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 // import { SellerLayoutComponent } from '../../../shared/components/seller-layout.component';
 
 @Component({
@@ -20,6 +23,9 @@ import { OrderService } from '../../../core/services/order.service';
       <button *ngFor="let f of filterOptions" class="filter-btn" [class.active]="activeFilter() === f.value" (click)="setFilter(f.value)">
         {{f.label}}
       </button>
+      <button class="filter-btn filter-payment" [class.active]="activeFilter() === 'AWAITING_PAYMENT'" (click)="setFilter('AWAITING_PAYMENT')">
+        💳 À vérifier ({{awaitingCount()}})
+      </button>
     </div>
 
     <div class="empty" *ngIf="filtered().length === 0">
@@ -32,6 +38,7 @@ import { OrderService } from '../../../core/services/order.service';
           <div class="order-meta">
             <strong class="order-id">#{{order.id.slice(-6).toUpperCase()}}</strong>
             <span class="badge badge-{{order.status.toLowerCase()}}">{{statusLabel(order.status)}}</span>
+            <span class="badge payment-badge payment-{{order.paymentStatus.toLowerCase()}}">{{paymentLabel(order.paymentStatus)}}</span>
           </div>
           <span class="order-date">{{order.createdAt | date:'dd/MM/yyyy à HH:mm'}}</span>
         </div>
@@ -56,6 +63,14 @@ import { OrderService } from '../../../core/services/order.service';
         <div class="order-footer">
           <strong class="total">Total : {{order.totalAmount.toLocaleString()}} FCFA</strong>
           <div class="status-actions">
+            <ng-container *ngIf="order.paymentStatus === 'AWAITING_VERIFICATION'">
+              <button class="btn-payment-confirm" (click)="confirmPayment(order.id)" title="Argent bien reçu sur Wave">
+                ✓ Confirmer le paiement
+              </button>
+              <button class="btn-payment-reject" (click)="rejectPayment(order.id)" title="Introuvable sur Wave">
+                ✕ Introuvable
+              </button>
+            </ng-container>
             <select [value]="order.status" (change)="updateStatus(order.id, $event)" class="status-select">
               <option *ngFor="let s of statusOptions" [value]="s.value">{{s.label}}</option>
             </select>
@@ -92,11 +107,28 @@ import { OrderService } from '../../../core/services/order.service';
     .total { font-size: 16px; color: var(--primary); }
     .status-select { padding: 8px 14px; border: 2px solid var(--border); border-radius: var(--radius-md); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; outline: none; background: white; }
     .status-select:focus { border-color: var(--primary); }
+    .payment-badge { font-size: 11px; padding: 4px 10px; border-radius: 99px; font-weight: 700; }
+    .payment-unpaid { background: #f3f4f6; color: #6b7280; }
+    .payment-awaiting_verification { background: #fef3c7; color: #92400e; }
+    .payment-paid { background: #d1fae5; color: #065f46; }
+    .payment-refunded { background: #fee2e2; color: #991b1b; }
+    .filter-payment.active { border-color: #f59e0b; background: #f59e0b; }
+    .status-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn-payment-confirm, .btn-payment-reject {
+      border: none; border-radius: var(--radius-md);
+      padding: 8px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: var(--transition);
+    }
+    .btn-payment-confirm { background: #d1fae5; color: #065f46; }
+    .btn-payment-confirm:hover { background: #a7f3d0; }
+    .btn-payment-reject { background: #fee2e2; color: #991b1b; }
+    .btn-payment-reject:hover { background: #fecaca; }
   `]
 })
-export class OrdersComponent implements OnInit {
+export class OrdersComponent implements OnInit, OnDestroy {
   orders = signal<any[]>([]);
   activeFilter = signal('ALL');
+  private sub!: Subscription;
 
   filterOptions = [
     { label: 'Toutes', value: 'ALL' },
@@ -114,19 +146,32 @@ export class OrdersComponent implements OnInit {
     { value: 'CANCELLED', label: 'Annulé' },
   ];
 
-  constructor(private orderService: OrderService, private snack: MatSnackBar) {}
+  constructor(
+    private orderService: OrderService,
+    private snack: MatSnackBar,
+    private polling: PollingService,
+  ) {}
 
-  ngOnInit() { this.load(); }
-
-  load() {
-    this.orderService.getMyOrders().subscribe({
+  ngOnInit() {
+    // Actualisation silencieuse toutes les 5s pour voir arriver les nouvelles
+    // commandes et les paiements déclarés sans recharger la page.
+    this.sub = this.polling.poll<any>(`${environment.apiUrl}/orders`, 5000).subscribe({
       next: (res) => this.orders.set(res.orders),
     });
   }
 
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+  }
+
   filtered() {
     if (this.activeFilter() === 'ALL') return this.orders();
+    if (this.activeFilter() === 'AWAITING_PAYMENT') return this.orders().filter(o => o.paymentStatus === 'AWAITING_VERIFICATION');
     return this.orders().filter(o => o.status === this.activeFilter());
+  }
+
+  awaitingCount() {
+    return this.orders().filter(o => o.paymentStatus === 'AWAITING_VERIFICATION').length;
   }
 
   setFilter(v: string) { this.activeFilter.set(v); }
@@ -136,14 +181,33 @@ export class OrdersComponent implements OnInit {
     this.orderService.updateStatus(id, status).subscribe({
       next: () => {
         this.snack.open('Statut mis à jour', '✓', { duration: 2000, panelClass: 'snack-success' });
-        this.load();
       },
       error: () => this.snack.open('Erreur', '✕', { duration: 2000, panelClass: 'snack-error' }),
     });
   }
 
+  confirmPayment(id: string) {
+    this.orderService.confirmPayment(id).subscribe({
+      next: () => this.snack.open('Paiement confirmé', '✓', { duration: 2000, panelClass: 'snack-success' }),
+      error: (err) => this.snack.open(err.error?.message || 'Erreur', '✕', { duration: 2500, panelClass: 'snack-error' }),
+    });
+  }
+
+  rejectPayment(id: string) {
+    if (!confirm("Paiement introuvable sur votre compte Wave — confirmer le rejet ? Le client devra réessayer.")) return;
+    this.orderService.rejectPayment(id).subscribe({
+      next: () => this.snack.open('Paiement rejeté', '✓', { duration: 2000, panelClass: 'snack-success' }),
+      error: (err) => this.snack.open(err.error?.message || 'Erreur', '✕', { duration: 2500, panelClass: 'snack-error' }),
+    });
+  }
+
   statusLabel(s: string) {
     const m: any = { PENDING: 'En attente', CONFIRMED: 'Confirmé', SHIPPING: 'En livraison', DELIVERED: 'Livré', CANCELLED: 'Annulé' };
+    return m[s] || s;
+  }
+
+  paymentLabel(s: string) {
+    const m: any = { UNPAID: 'Non payé', AWAITING_VERIFICATION: 'À vérifier', PAID: 'Payé', REFUNDED: 'Remboursé' };
     return m[s] || s;
   }
 }
