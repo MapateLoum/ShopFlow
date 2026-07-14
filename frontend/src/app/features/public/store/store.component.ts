@@ -295,8 +295,8 @@ import { environment } from '../../../../environments/environment';
     .store-page { min-height: 100vh; background: var(--bg); }
     .store-header { margin-bottom: 0; }
     .banner-wrap { position: relative; padding-bottom: 50px; }
-    .banner { height: 200px; position: relative; overflow: hidden; }
-    .banner-img { width: 100%; height: 100%; object-fit: cover; }
+    .banner { height: 260px; position: relative; overflow: hidden; }
+    .banner-img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
     .store-logo { position: absolute; bottom: 0; left: 5%; width: 80px; height: 80px; border-radius: 20px; border: 4px solid white; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white; font-size: 28px; overflow: hidden; flex-shrink: 0; box-shadow: var(--shadow-md); }
     .store-logo img { width: 100%; height: 100%; object-fit: cover; }
     .header-content { background: white; padding: 12px 5% 20px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -608,6 +608,7 @@ import { environment } from '../../../../environments/environment';
       .fields-grid { grid-template-columns: 1fr; }
       .wave-card-header { flex-direction: column; align-items: flex-start; }
       .wave-qr-img { width: 150px; height: 150px; }
+      .banner { height: 160px; }
     }
   `]
 })
