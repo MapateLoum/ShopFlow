@@ -93,8 +93,8 @@ import { AuthService } from '../../../core/services/auth.service';
               </div>
             </div>
             <div class="field">
-              <label>Numéro Wave Business (optionnel)</label>
-              <input formControlName="waveBusinessNumber" placeholder="+221 77 000 00 00" type="tel">
+              <label>Lien de paiement Wave Business (optionnel, ajoutable plus tard)</label>
+              <input formControlName="wavePaymentLink" placeholder="https://pay.wave.com/m/M_sn_xxxxxxxx/c/sn/" type="url">
             </div>
             <div class="btn-row">
               <button class="btn-outline" type="button" (click)="step.set(1)">← Retour</button>
@@ -195,7 +195,7 @@ export class RegisterComponent {
     storeName: ['', Validators.required],
     storeDescription: [''],
     primaryColor: ['#6C63FF'],
-    waveBusinessNumber: [''],
+    wavePaymentLink: [''],
   });
 
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router, private snack: MatSnackBar) {}

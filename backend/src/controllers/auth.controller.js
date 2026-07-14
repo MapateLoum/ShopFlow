@@ -7,7 +7,7 @@ const slugify = require("slugify");
 // ─── SELLER REGISTER (step 1: envoie OTP) ────────────────────────────────────
 const sellerRegister = async (req, res) => {
   try {
-    const { name, email, phone, password, storeName, storeDescription, primaryColor, waveBusinessNumber } = req.body;
+    const { name, email, phone, password, storeName, storeDescription, primaryColor, wavePaymentLink } = req.body;
 
     const exists = await prisma.seller.findUnique({ where: { email } });
     if (exists) return res.status(400).json({ success: false, message: "Email déjà utilisé" });
@@ -34,7 +34,7 @@ const sellerRegister = async (req, res) => {
             slug,
             description: storeDescription || "",
             primaryColor: primaryColor || "#6C63FF",
-            waveBusinessNumber: waveBusinessNumber || "",
+            wavePaymentLink: wavePaymentLink || "",
           },
         },
       },
