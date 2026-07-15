@@ -8,6 +8,7 @@ export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/public/home/home.component').then(m => m.HomeComponent) },
   { path: 'boutique/:slug', loadComponent: () => import('./features/public/store/store.component').then(m => m.StoreComponent) },
   { path: 'commande/:id', loadComponent: () => import('./features/public/order-tracking/order-tracking.component').then(m => m.OrderTrackingComponent) },
+  { path: 'mes-commandes', loadComponent: () => import('./features/public/order-history/order-history.component').then(m => m.OrderHistoryComponent) },
 
   // Auth
   { path: 'auth', children: [

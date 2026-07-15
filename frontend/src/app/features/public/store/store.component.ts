@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -34,6 +34,7 @@ import { environment } from '../../../../environments/environment';
           <p>{{store().description}}</p>
         </div>
         <div class="cart-btn-wrap">
+          <a routerLink="/mes-commandes" class="my-orders-link">Mes commandes</a>
           <button class="cart-btn" (click)="showCart.set(true)" [style.background]="store().primaryColor">
             🛒 Panier <span class="cart-count" *ngIf="cartCount() > 0">{{cartCount()}}</span>
           </button>
@@ -312,7 +313,9 @@ import { environment } from '../../../../environments/environment';
     .store-meta { flex: 1; }
     .store-meta h1 { font-size: 22px; margin-bottom: 4px; }
     .store-meta p { color: var(--text-secondary); font-size: 14px; }
-    .cart-btn-wrap { margin-left: auto; }
+    .cart-btn-wrap { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .my-orders-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .my-orders-link:hover { text-decoration: underline; }
     .cart-btn { color: white; border: none; border-radius: var(--radius-md); padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
     .cart-count { background: white; color: #333; border-radius: 99px; font-size: 11px; font-weight: 800; padding: 2px 7px; }
 
@@ -646,6 +649,9 @@ export class StoreComponent implements OnInit, OnDestroy {
     clientPhone: [''],
   });
 
+  private cartKey = '';
+  private cartLoadedFromStorage = false;
+
 constructor(
   private route: ActivatedRoute,
   private storeService: StoreService,
@@ -653,10 +659,25 @@ constructor(
   private fb: FormBuilder,
   private snack: MatSnackBar,
   private polling: PollingService   // ← ajoute ça
-) {}
+) {
+  // Panier persistant : sauvegardé dans le navigateur, propre à chaque boutique
+  // (une clé différente par slug, pour ne pas mélanger les paniers entre boutiques)
+  effect(() => {
+    const items = this.cart();
+    if (!this.cartKey || !this.cartLoadedFromStorage) return; // évite d'écraser avant le chargement initial
+    localStorage.setItem(this.cartKey, JSON.stringify(items));
+  });
+}
 
 ngOnInit() {
   const slug = this.route.snapshot.paramMap.get('slug')!;
+  this.cartKey = `shopflow_cart_${slug}`;
+  try {
+    const saved = localStorage.getItem(this.cartKey);
+    if (saved) this.cart.set(JSON.parse(saved));
+  } catch { /* panier corrompu ou storage indisponible, on repart d'un panier vide */ }
+  this.cartLoadedFromStorage = true;
+
   this.sub = this.polling.poll<any>(
     `${environment.apiUrl}/public/stores/${slug}`, 4000
   ).subscribe({

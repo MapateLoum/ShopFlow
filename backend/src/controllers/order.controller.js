@@ -1,5 +1,6 @@
 const prisma = require("../utils/prisma");
-const { sendPaymentConfirmedEmail, sendPaymentRejectedEmail } = require("../emails/mailer");
+const { sendPaymentConfirmedEmail, sendPaymentRejectedEmail, sendOrdersAccessEmail } = require("../emails/mailer");
+const { generateShortToken, verifyToken } = require("../utils/auth.utils");
 
 // Client passe une commande
 const createOrder = async (req, res) => {
@@ -219,4 +220,66 @@ const getOrderTracking = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getMyOrders, updateOrderStatus, getOrderStats, confirmPayment, rejectPayment, getOrderTracking };
+// POST /api/orders/request-history — le client demande un lien pour revoir ses commandes
+// Toujours répondre "email envoyé" même si l'email n'existe pas, pour ne pas révéler
+// quels emails ont déjà commandé (évite l'énumération de comptes)
+const requestOrderHistory = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: "Email requis" });
+
+    const client = await prisma.client.findFirst({ where: { email } });
+    if (client) {
+      const token = generateShortToken({ email, type: "ORDER_HISTORY" }, "30m");
+      const link = `${process.env.FRONTEND_URL}/mes-commandes?token=${token}`;
+      try {
+        await sendOrdersAccessEmail(email, client.name, link);
+      } catch (mailErr) {
+        console.error("Échec envoi email historique commandes:", mailErr.message);
+      }
+    }
+
+    res.json({ success: true, message: "Si cet email a déjà commandé, un lien vient d'être envoyé." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Erreur" });
+  }
+};
+
+// GET /api/orders/history?token=... — liste des commandes du client identifié par le token
+const getOrderHistory = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ success: false, message: "Lien invalide" });
+
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch {
+      return res.status(401).json({ success: false, message: "Ce lien a expiré, redemandez-en un nouveau." });
+    }
+    if (decoded.type !== "ORDER_HISTORY") {
+      return res.status(401).json({ success: false, message: "Lien invalide" });
+    }
+
+    const client = await prisma.client.findFirst({ where: { email: decoded.email } });
+    if (!client) return res.json({ success: true, orders: [] });
+
+    const orders = await prisma.order.findMany({
+      where: { clientId: client.id },
+      include: {
+        store: { select: { name: true, logoUrl: true, slug: true, primaryColor: true } },
+        items: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ success: true, orders });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Erreur" });
+  }
+};
+
+module.exports = {
+  createOrder, getMyOrders, updateOrderStatus, getOrderStats, confirmPayment, rejectPayment,
+  getOrderTracking, requestOrderHistory, getOrderHistory,
+};

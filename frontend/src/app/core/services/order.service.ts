@@ -34,4 +34,12 @@ export class OrderService {
   trackOrder(id: string) {
     return this.http.get<any>(`${this.api}/orders/${id}/track`);
   }
+
+  requestOrderHistory(email: string) {
+    return this.http.post<any>(`${this.api}/orders/request-history`, { email });
+  }
+
+  getOrderHistory(token: string) {
+    return this.http.get<any>(`${this.api}/orders/history`, { params: { token } });
+  }
 }

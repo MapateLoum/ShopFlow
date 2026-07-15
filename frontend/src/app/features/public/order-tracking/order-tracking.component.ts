@@ -26,6 +26,8 @@ const STATUS_STEPS = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED'];
         </div>
       </div>
 
+      <a routerLink="/mes-commandes" class="all-orders-link">← Voir toutes mes commandes</a>
+
       <h1>Commande #{{o.id.slice(-6).toUpperCase()}}</h1>
       <p class="order-date">Passée le {{o.createdAt | date:'dd MMMM yyyy à HH:mm'}}</p>
 
@@ -99,6 +101,8 @@ const STATUS_STEPS = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED'];
     .store-line strong { display: block; font-size: 15px; }
     .store-link { font-size: 13px; color: #6C63FF; text-decoration: none; }
     .store-link:hover { text-decoration: underline; }
+    .all-orders-link { display: inline-block; font-size: 13px; color: #999; text-decoration: none; margin-bottom: 16px; }
+    .all-orders-link:hover { color: #6C63FF; }
     h1 { font-size: 22px; margin: 0 0 4px; }
     .order-date { color: #888; font-size: 13px; margin: 0 0 24px; }
 

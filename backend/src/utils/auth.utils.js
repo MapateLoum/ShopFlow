@@ -11,6 +11,12 @@ const generateToken = (payload) => {
   });
 };
 
+// Token courte durée pour les liens "magiques" envoyés par email
+// (ex: retrouver mes commandes) — distinct du token de session vendeur
+const generateShortToken = (payload, expiresIn = "30m") => {
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+};
+
 const verifyToken = (token) => {
   return jwt.verify(token, process.env.JWT_SECRET);
 };
@@ -21,4 +27,4 @@ const otpExpiresAt = () => {
   return d;
 };
 
-module.exports = { generateOTP, generateToken, verifyToken, otpExpiresAt };
+module.exports = { generateOTP, generateToken, generateShortToken, verifyToken, otpExpiresAt };

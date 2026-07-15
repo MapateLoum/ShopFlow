@@ -211,4 +211,46 @@ const sendPaymentRejectedEmail = async (to, name, { orderId, storeName, amount, 
   });
 };
 
-module.exports = { sendOTPEmail, sendWelcomeEmail, sendPaymentConfirmedEmail, sendPaymentRejectedEmail };
+const sendOrdersAccessEmail = async (to, name, link) => {
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background:#f4f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:40px 0;">
+      <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6C63FF,#4ECDC4);padding:40px;text-align:center;">
+              <h1 style="margin:0;color:#fff;font-size:26px;">📦 Vos commandes ShopFlow</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <p style="color:#444;font-size:16px;">Bonjour ${name},</p>
+              <p style="color:#666;font-size:15px;line-height:1.7;">
+                Cliquez sur le bouton ci-dessous pour retrouver toutes vos commandes passées sur ShopFlow, toutes boutiques confondues.
+              </p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${link}" style="background:#6C63FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Voir mes commandes →</a>
+              </div>
+              <p style="color:#999;font-size:13px;line-height:1.6;">Ce lien est valable 7 jours. Si vous n'avez pas fait cette demande, ignorez simplement cet email.</p>
+            </td>
+          </tr>
+          <tr><td style="background:#f8f8f8;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+            <p style="margin:0;color:#bbb;font-size:12px;">© 2024 ShopFlow · Dakar, Sénégal</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+  </html>
+  `;
+  await transporter.sendMail({
+    from: process.env.MAIL_FROM,
+    to,
+    subject: "Retrouvez vos commandes ShopFlow",
+    html,
+  });
+};
+
+module.exports = { sendOTPEmail, sendWelcomeEmail, sendPaymentConfirmedEmail, sendPaymentRejectedEmail, sendOrdersAccessEmail };
