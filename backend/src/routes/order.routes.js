@@ -7,10 +7,12 @@ const {
   getOrderStats,
   confirmPayment,
   rejectPayment,
+  getOrderTracking,
 } = require("../controllers/order.controller");
 
-// Route publique : client passe commande
+// Routes publiques : client passe commande / suit sa commande (pas de compte client)
 router.post("/", createOrder);
+router.get("/:id/track", getOrderTracking);
 
 // Routes protégées vendeur
 router.get("/", protect, isSeller, getMyOrders);

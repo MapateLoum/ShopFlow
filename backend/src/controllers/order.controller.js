@@ -1,4 +1,5 @@
 const prisma = require("../utils/prisma");
+const { sendPaymentConfirmedEmail, sendPaymentRejectedEmail } = require("../emails/mailer");
 
 // Client passe une commande
 const createOrder = async (req, res) => {
@@ -115,12 +116,29 @@ const updateOrderStatus = async (req, res) => {
 const confirmPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await prisma.order.findFirst({ where: { id, storeId: req.user.storeId } });
+    const order = await prisma.order.findFirst({
+      where: { id, storeId: req.user.storeId },
+      include: { client: true, store: { select: { name: true } } },
+    });
     if (!order) return res.status(404).json({ success: false, message: "Commande introuvable" });
     if (order.paymentStatus !== "AWAITING_VERIFICATION") {
       return res.status(400).json({ success: false, message: "Ce paiement n'est pas en attente de vérification" });
     }
     const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "PAID" } });
+
+    // L'email ne doit jamais faire planter la confirmation elle-même si l'envoi échoue
+    try {
+      const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
+      await sendPaymentConfirmedEmail(order.client.email, order.client.name, {
+        orderId: order.id,
+        storeName: order.store.name,
+        amount: order.totalAmount,
+        trackingUrl,
+      });
+    } catch (mailErr) {
+      console.error("Échec envoi email confirmation paiement:", mailErr.message);
+    }
+
     res.json({ success: true, order: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: "Erreur" });
@@ -131,12 +149,28 @@ const confirmPayment = async (req, res) => {
 const rejectPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await prisma.order.findFirst({ where: { id, storeId: req.user.storeId } });
+    const order = await prisma.order.findFirst({
+      where: { id, storeId: req.user.storeId },
+      include: { client: true, store: { select: { name: true } } },
+    });
     if (!order) return res.status(404).json({ success: false, message: "Commande introuvable" });
     if (order.paymentStatus !== "AWAITING_VERIFICATION") {
       return res.status(400).json({ success: false, message: "Ce paiement n'est pas en attente de vérification" });
     }
     const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "UNPAID" } });
+
+    try {
+      const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
+      await sendPaymentRejectedEmail(order.client.email, order.client.name, {
+        orderId: order.id,
+        storeName: order.store.name,
+        amount: order.totalAmount,
+        trackingUrl,
+      });
+    } catch (mailErr) {
+      console.error("Échec envoi email rejet paiement:", mailErr.message);
+    }
+
     res.json({ success: true, order: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: "Erreur" });
@@ -166,4 +200,23 @@ const getOrderStats = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getMyOrders, updateOrderStatus, getOrderStats, confirmPayment, rejectPayment };
+// Suivi public d'une commande — pas d'auth, accessible juste avec l'id
+// (le client n'a pas de compte, donc pas de login possible côté client)
+const getOrderTracking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: { include: { product: { select: { name: true, imageUrl: true } } } },
+        store: { select: { name: true, logoUrl: true, primaryColor: true, slug: true } },
+      },
+    });
+    if (!order) return res.status(404).json({ success: false, message: "Commande introuvable" });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Erreur" });
+  }
+};
+
+module.exports = { createOrder, getMyOrders, updateOrderStatus, getOrderStats, confirmPayment, rejectPayment, getOrderTracking };

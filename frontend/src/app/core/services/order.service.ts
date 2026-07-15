@@ -30,4 +30,8 @@ export class OrderService {
   rejectPayment(id: string) {
     return this.http.patch<any>(`${this.api}/orders/${id}/reject-payment`, {});
   }
+
+  trackOrder(id: string) {
+    return this.http.get<any>(`${this.api}/orders/${id}/track`);
+  }
 }

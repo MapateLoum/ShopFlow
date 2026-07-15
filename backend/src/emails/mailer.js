@@ -124,4 +124,91 @@ const sendWelcomeEmail = async (to, name, storeSlug) => {
   });
 };
 
-module.exports = { sendOTPEmail, sendWelcomeEmail };
+const sendPaymentConfirmedEmail = async (to, name, { orderId, storeName, amount, trackingUrl }) => {
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background:#f4f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:40px 0;">
+      <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6C63FF,#4ECDC4);padding:40px;text-align:center;">
+              <h1 style="margin:0;color:#fff;font-size:26px;">✅ Paiement confirmé</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <p style="color:#444;font-size:16px;">Bonjour ${name},</p>
+              <p style="color:#666;font-size:15px;line-height:1.7;">
+                Bonne nouvelle : <strong>${storeName}</strong> a confirmé avoir bien reçu votre paiement Wave de
+                <strong>${Number(amount).toLocaleString()} FCFA</strong> pour la commande
+                <strong>#${orderId.slice(-6).toUpperCase()}</strong>. Votre commande est en cours de préparation.
+              </p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${trackingUrl}" style="background:#6C63FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Suivre ma commande →</a>
+              </div>
+            </td>
+          </tr>
+          <tr><td style="background:#f8f8f8;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+            <p style="margin:0;color:#bbb;font-size:12px;">© 2024 ShopFlow · Dakar, Sénégal</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+  </html>
+  `;
+  await transporter.sendMail({
+    from: process.env.MAIL_FROM,
+    to,
+    subject: `Paiement confirmé — commande #${orderId.slice(-6).toUpperCase()}`,
+    html,
+  });
+};
+
+const sendPaymentRejectedEmail = async (to, name, { orderId, storeName, amount, trackingUrl }) => {
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background:#f4f4f8;font-family:'Segoe UI',Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:40px 0;">
+      <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#e74c3c;padding:40px;text-align:center;">
+              <h1 style="margin:0;color:#fff;font-size:26px;">⚠️ Paiement introuvable</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <p style="color:#444;font-size:16px;">Bonjour ${name},</p>
+              <p style="color:#666;font-size:15px;line-height:1.7;">
+                <strong>${storeName}</strong> n'a pas retrouvé votre paiement Wave de
+                <strong>${Number(amount).toLocaleString()} FCFA</strong> pour la commande
+                <strong>#${orderId.slice(-6).toUpperCase()}</strong>. Vérifiez que le transfert a bien été envoyé,
+                puis réessayez ou contactez directement le vendeur.
+              </p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${trackingUrl}" style="background:#6C63FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">Voir ma commande →</a>
+              </div>
+            </td>
+          </tr>
+          <tr><td style="background:#f8f8f8;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+            <p style="margin:0;color:#bbb;font-size:12px;">© 2024 ShopFlow · Dakar, Sénégal</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+  </html>
+  `;
+  await transporter.sendMail({
+    from: process.env.MAIL_FROM,
+    to,
+    subject: `Paiement introuvable — commande #${orderId.slice(-6).toUpperCase()}`,
+    html,
+  });
+};
+
+module.exports = { sendOTPEmail, sendWelcomeEmail, sendPaymentConfirmedEmail, sendPaymentRejectedEmail };

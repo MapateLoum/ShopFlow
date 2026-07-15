@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { StoreService } from '../../../core/services/store.service';
@@ -13,7 +13,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-store',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
   <div class="store-page" *ngIf="store(); else loading">
     <!-- Header boutique -->
@@ -285,8 +285,17 @@ import { environment } from '../../../../environments/environment';
     <div class="success-card animate-fade-in-up">
       <div class="success-icon">🎉</div>
       <h2>Commande confirmée !</h2>
-      <p>Merci pour votre commande. Le vendeur a été notifié et vous contactera bientôt.</p>
-      <button class="btn-primary" [style.background]="store()?.primaryColor" (click)="orderSuccess.set(false)">Continuer les achats</button>
+      <p>Merci pour votre commande. Le vendeur va vérifier votre paiement et confirmer prochainement — vous recevrez aussi un email de confirmation.</p>
+      <a
+        *ngIf="lastOrderId()"
+        class="btn-primary w-full"
+        style="margin-bottom:10px;text-decoration:none;display:block;text-align:center;box-sizing:border-box;"
+        [style.background]="store()?.primaryColor"
+        [routerLink]="['/commande', lastOrderId()]"
+      >
+        Suivre ma commande
+      </a>
+      <button class="btn-secondary w-full" (click)="orderSuccess.set(false)">Continuer les achats</button>
     </div>
   </div>
   `,
@@ -619,6 +628,7 @@ export class StoreComponent implements OnInit, OnDestroy {
   showCheckout = signal(false);
   ordering     = signal(false);
   orderSuccess = signal(false);
+  lastOrderId  = signal<string | null>(null);
   checkoutStep = signal<1 | 2>(1);   // ← nouvelle étape
   private sub!: Subscription;
 
@@ -703,9 +713,10 @@ ngOnDestroy() {
       items: this.cart().map(i => ({ productId: i.id, quantity: i.qty })),
     };
     this.orderService.createOrder(payload).subscribe({
-      next: () => {
+      next: (res) => {
         this.cart.set([]);
         this.closeCheckout();
+        this.lastOrderId.set(res.order?.id || null);
         this.orderSuccess.set(true);
         this.ordering.set(false);
         this.checkoutForm.reset();
