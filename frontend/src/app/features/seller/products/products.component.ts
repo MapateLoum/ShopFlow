@@ -34,7 +34,7 @@ import { ProductService } from '../../../core/services/product.service';
             <strong class="price">{{p.price.toLocaleString()}} FCFA</strong>
             <div class="actions">
               <button class="icon-btn edit" (click)="editProduct(p)" title="Modifier">✏️</button>
-              <button class="icon-btn delete" (click)="deleteProduct(p.id)" title="Supprimer">🗑️</button>
+              <button class="icon-btn delete" (click)="askDelete(p)" title="Supprimer">🗑️</button>
             </div>
           </div>
         </div>
@@ -91,6 +91,21 @@ import { ProductService } from '../../../core/services/product.service';
         </form>
       </div>
     </div>
+
+    <!-- Modal suppression -->
+    <div class="modal-overlay" *ngIf="deleteTarget()" (click)="deleteTarget.set(null)">
+      <div class="confirm-modal" (click)="$event.stopPropagation()">
+        <div class="confirm-icon">🗑️</div>
+        <h3>Supprimer ce produit ?</h3>
+        <p>« {{deleteTarget()?.name}} » sera retiré de votre boutique définitivement.</p>
+        <div class="confirm-actions">
+          <button class="btn-outline" (click)="deleteTarget.set(null)" [disabled]="deleting()">Annuler</button>
+          <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleting()">
+            {{deleting() ? 'Suppression...' : 'Supprimer'}}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   `,
@@ -122,6 +137,15 @@ import { ProductService } from '../../../core/services/product.service';
     .empty h3 { font-size: 20px; margin-bottom: 8px; }
     .empty p { color: var(--text-secondary); margin-bottom: 24px; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .confirm-modal { background: white; border-radius: var(--radius-lg, 16px); padding: 32px; max-width: 380px; width: 100%; text-align: center; }
+    .confirm-icon { font-size: 40px; margin-bottom: 12px; }
+    .confirm-modal h3 { font-size: 18px; margin: 0 0 8px; }
+    .confirm-modal p { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 12px; }
+    .confirm-actions button { flex: 1; justify-content: center; }
+    .btn-danger { background: #dc2626; color: white; border: none; border-radius: var(--radius-md, 10px); padding: 12px 20px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger:disabled, .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
     .modal { background: white; border-radius: var(--radius-xl); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 28px; border-bottom: 1px solid var(--border); }
     .modal-header h2 { font-size: 20px; }
@@ -147,6 +171,8 @@ export class ProductsComponent implements OnInit {
   editMode = signal(false);
   saving = signal(false);
   loading = signal(false);
+  deleteTarget = signal<any>(null);
+  deleting = signal(false);
   previewUrl = signal<string | null>(null);
   editId = signal<string | null>(null);
   selectedFile: File | null = null;
@@ -212,10 +238,25 @@ export class ProductsComponent implements OnInit {
     });
   }
 
-  deleteProduct(id: string) {
-    if (!confirm('Supprimer ce produit ?')) return;
-    this.productService.deleteProduct(id).subscribe({
-      next: () => { this.snack.open('Produit supprimé', '', { duration: 2000 }); this.load(); },
+  askDelete(product: any) {
+    this.deleteTarget.set(product);
+  }
+
+  confirmDelete() {
+    const target = this.deleteTarget();
+    if (!target) return;
+    this.deleting.set(true);
+    this.productService.deleteProduct(target.id).subscribe({
+      next: () => {
+        this.snack.open('Produit supprimé', '', { duration: 2000 });
+        this.deleteTarget.set(null);
+        this.deleting.set(false);
+        this.load();
+      },
+      error: () => {
+        this.snack.open('Erreur lors de la suppression', '✕', { duration: 2500, panelClass: 'snack-error' });
+        this.deleting.set(false);
+      },
     });
   }
 }

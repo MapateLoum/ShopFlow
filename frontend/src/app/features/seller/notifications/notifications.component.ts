@@ -15,11 +15,16 @@ import { NotificationService } from '../../../core/services/notification.service
       <button class="btn-outline" (click)="markAll()" *ngIf="unread() > 0">Tout marquer comme lu</button>
     </div>
 
-    <div class="empty" *ngIf="notifications().length === 0">
+    <div class="error-banner" *ngIf="loadError()">
+      ⚠️ Impossible de charger les notifications.
+      <button (click)="load()">Réessayer</button>
+    </div>
+
+    <div class="empty" *ngIf="!loading() && !loadError() && notifications().length === 0">
       <p>🔔 Aucune notification pour l'instant</p>
     </div>
 
-    <div class="notif-list">
+    <div class="notif-list" *ngIf="!loadError()">
       <div class="notif-item" *ngFor="let n of notifications()" [class.unread]="!n.isRead" (click)="markRead(n)">
         <div class="notif-icon">{{n.type === 'NEW_ORDER' ? '🛒' : '📢'}}</div>
         <div class="notif-body">
@@ -38,6 +43,8 @@ import { NotificationService } from '../../../core/services/notification.service
     .page-header h1 { font-size: 24px; margin-bottom: 2px; }
     .page-header p { color: var(--text-secondary); font-size: 14px; }
     .empty { text-align: center; padding: 60px; color: var(--text-secondary); }
+    .error-banner { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+    .error-banner button { background: #991b1b; color: white; border: none; border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; flex-shrink: 0; }
     .notif-list { display: flex; flex-direction: column; gap: 8px; }
     .notif-item { display: flex; align-items: center; gap: 16px; background: white; border-radius: var(--radius-md); padding: 16px 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); cursor: pointer; transition: var(--transition); position: relative; }
     .notif-item:hover { box-shadow: var(--shadow-md); }
@@ -51,6 +58,8 @@ import { NotificationService } from '../../../core/services/notification.service
 })
 export class NotificationsComponent implements OnInit {
   notifications = signal<any[]>([]);
+  loading = signal(true);
+  loadError = signal(false);
 
   constructor(private notifService: NotificationService) {}
 
@@ -59,7 +68,16 @@ export class NotificationsComponent implements OnInit {
   ngOnInit() { this.load(); }
 
   load() {
-    this.notifService.getAll().subscribe({ next: (res) => this.notifications.set(res.notifications) });
+    this.loading.set(true);
+    this.loadError.set(false);
+    this.notifService.getAll().subscribe({
+      next: (res) => { this.notifications.set(res.notifications); this.loading.set(false); },
+      error: (err) => {
+        console.error('Erreur chargement notifications:', err);
+        this.loadError.set(true);
+        this.loading.set(false);
+      },
+    });
   }
 
   markRead(n: any) {
