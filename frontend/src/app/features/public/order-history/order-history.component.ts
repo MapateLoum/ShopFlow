@@ -167,7 +167,13 @@ export class OrderHistoryComponent implements OnInit {
   loadHistory(token: string) {
     this.loading.set(true);
     this.orderService.getOrderHistory(token).subscribe({
-      next: (res) => { this.orders.set(res.orders); this.loading.set(false); },
+      next: (res) => {
+        this.orders.set(res.orders);
+        this.loading.set(false);
+        // Garde le token en mémoire de session, pour que "Voir toutes mes commandes"
+        // depuis une page de suivi puisse revenir directement ici sans redemander l'email.
+        sessionStorage.setItem('shopflow_order_history_token', token);
+      },
       error: (err) => {
         this.tokenError.set(err.error?.message || "Ce lien n'est plus valable.");
         this.loading.set(false);

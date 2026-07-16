@@ -26,7 +26,11 @@ const STATUS_STEPS = ['PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED'];
         </div>
       </div>
 
-      <a routerLink="/mes-commandes" class="all-orders-link">← Voir toutes mes commandes</a>
+      <a
+        routerLink="/mes-commandes"
+        [queryParams]="historyToken ? { token: historyToken } : {}"
+        class="all-orders-link"
+      >← Voir toutes mes commandes</a>
 
       <h1>Commande #{{o.id.slice(-6).toUpperCase()}}</h1>
       <p class="order-date">Passée le {{o.createdAt | date:'dd MMMM yyyy à HH:mm'}}</p>
@@ -147,6 +151,7 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
   order = signal<any>(null);
   notFound = signal(false);
   statusSteps = STATUS_STEPS;
+  historyToken: string | null = null;
   private sub!: Subscription;
 
   constructor(
@@ -156,6 +161,8 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.historyToken = sessionStorage.getItem('shopflow_order_history_token');
+
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) { this.notFound.set(true); return; }
 
