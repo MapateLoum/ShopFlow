@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { OrderService } from '../../../core/services/order.service';
@@ -17,6 +17,7 @@ const PAYMENT_CLASS: Record<string, string> = { UNPAID: 'p-unpaid', AWAITING_VER
 
     <!-- Étape 1 : demander le lien par email -->
     <div class="history-card" *ngIf="!token && !sent()">
+      <button class="back-btn" (click)="goBack()">← Retour</button>
       <div class="icon-badge">📦</div>
       <h1>Retrouver mes commandes</h1>
       <p class="subtitle">Entrez l'email utilisé lors de vos achats — on vous envoie un lien pour tout revoir, toutes boutiques confondues.</p>
@@ -31,6 +32,7 @@ const PAYMENT_CLASS: Record<string, string> = { UNPAID: 'p-unpaid', AWAITING_VER
 
     <!-- Confirmation d'envoi -->
     <div class="history-card" *ngIf="!token && sent()">
+      <button class="back-btn" (click)="goBack()">← Retour</button>
       <div class="icon-badge">📬</div>
       <h1>Vérifiez votre boîte mail</h1>
       <p class="subtitle">Si cet email a déjà servi à commander, un lien vient d'être envoyé — valable 30 minutes. Pensez aussi aux spams.</p>
@@ -40,6 +42,7 @@ const PAYMENT_CLASS: Record<string, string> = { UNPAID: 'p-unpaid', AWAITING_VER
     <!-- Étape 2 : liste des commandes (token présent) -->
     <div class="history-list-wrap" *ngIf="token">
       <div class="history-header">
+        <button class="back-btn back-btn-inline" (click)="goBack()">← Retour</button>
         <h1>Mes commandes</h1>
         <p *ngIf="orders() as list">{{list.length}} commande(s)</p>
       </div>
@@ -86,7 +89,10 @@ const PAYMENT_CLASS: Record<string, string> = { UNPAID: 'p-unpaid', AWAITING_VER
   `,
   styles: [`
     .history-page { min-height: 100vh; background: #f8f9fb; display: flex; justify-content: center; padding: 48px 16px; }
-    .history-card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #eee; max-width: 440px; width: 100%; padding: 36px; text-align: center; height: fit-content; margin-bottom: 16px; }
+    .history-card { position: relative; background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #eee; max-width: 440px; width: 100%; padding: 36px; text-align: center; height: fit-content; margin-bottom: 16px; }
+    .back-btn { position: absolute; top: 20px; left: 20px; background: none; border: none; color: #999; font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px 0; }
+    .back-btn:hover { color: #6C63FF; }
+    .back-btn-inline { position: static; display: block; margin-bottom: 10px; }
     .icon-badge { font-size: 40px; margin-bottom: 16px; }
     .history-card h1 { font-size: 22px; margin: 0 0 10px; }
     .history-card h2 { font-size: 18px; margin: 0 0 8px; }
@@ -137,11 +143,16 @@ export class OrderHistoryComponent implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private orderService: OrderService,
+    private location: Location,
   ) {}
 
   ngOnInit() {
     this.token = this.route.snapshot.queryParamMap.get('token');
     if (this.token) this.loadHistory(this.token);
+  }
+
+  goBack() {
+    this.location.back();
   }
 
   submit() {
