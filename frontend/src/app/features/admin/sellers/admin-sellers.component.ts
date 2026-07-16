@@ -62,10 +62,25 @@ import { AuthService } from '../../../core/services/auth.service';
               <small class="joined">Inscrit le {{s.createdAt | date:'dd/MM/yyyy'}}</small>
               <div class="action-btns">
                 <button *ngIf="s.status !== 'ACTIVE'" class="btn-activate" (click)="activate(s.id)">✅ Activer</button>
-                <button *ngIf="s.status === 'ACTIVE'" class="btn-suspend" (click)="suspend(s.id)">⛔ Suspendre</button>
+                <button *ngIf="s.status === 'ACTIVE'" class="btn-suspend" (click)="askSuspend(s)">⛔ Suspendre</button>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal suspension -->
+    <div class="modal-overlay" *ngIf="suspendTarget()" (click)="suspendTarget.set(null)">
+      <div class="confirm-modal" (click)="$event.stopPropagation()">
+        <div class="confirm-icon">⛔</div>
+        <h3>Suspendre ce vendeur ?</h3>
+        <p>« {{suspendTarget()?.name}} » ne pourra plus se connecter ni gérer sa boutique tant qu'il est suspendu.</p>
+        <div class="confirm-actions">
+          <button class="btn-outline" (click)="suspendTarget.set(null)" [disabled]="suspending()">Annuler</button>
+          <button class="btn-danger" (click)="confirmSuspend()" [disabled]="suspending()">
+            {{suspending() ? 'Suspension...' : 'Suspendre'}}
+          </button>
         </div>
       </div>
     </div>
@@ -109,11 +124,26 @@ import { AuthService } from '../../../core/services/auth.service';
     .btn-suspend { background: #fee2e2; color: #dc2626; border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
     .btn-suspend:hover { background: #dc2626; color: white; }
     @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { margin-left: 0; } }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .confirm-modal { background: white; border-radius: var(--radius-lg, 16px); padding: 32px; max-width: 380px; width: 100%; text-align: center; }
+    .confirm-icon { font-size: 40px; margin-bottom: 12px; }
+    .confirm-modal h3 { font-size: 18px; margin: 0 0 8px; }
+    .confirm-modal p { color: var(--text-secondary); font-size: 14px; margin: 0 0 24px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 12px; }
+    .confirm-actions button { flex: 1; }
+    .btn-outline { background: white; color: var(--text-primary); border: 2px solid var(--border); border-radius: var(--radius-md, 10px); padding: 11px 20px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: #dc2626; color: white; border: none; border-radius: var(--radius-md, 10px); padding: 12px 20px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger:disabled, .btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
   `]
 })
 export class AdminSellersComponent implements OnInit {
   sellers = signal<any[]>([]);
   activeFilter = signal('ALL');
+  suspendTarget = signal<any>(null);
+  suspending = signal(false);
 
   filters = [
     { label: 'Tous', value: 'ALL' },
@@ -145,10 +175,25 @@ export class AdminSellersComponent implements OnInit {
     });
   }
 
-  suspend(id: string) {
-    if (!confirm('Suspendre ce vendeur ?')) return;
-    this.adminService.suspendSeller(id).subscribe({
-      next: () => { this.snack.open('Vendeur suspendu', '', { duration: 2000 }); this.load(); },
+  askSuspend(seller: any) {
+    this.suspendTarget.set(seller);
+  }
+
+  confirmSuspend() {
+    const target = this.suspendTarget();
+    if (!target) return;
+    this.suspending.set(true);
+    this.adminService.suspendSeller(target.id).subscribe({
+      next: () => {
+        this.snack.open('Vendeur suspendu', '', { duration: 2000 });
+        this.suspendTarget.set(null);
+        this.suspending.set(false);
+        this.load();
+      },
+      error: () => {
+        this.snack.open('Erreur', '✕', { duration: 2000, panelClass: 'snack-error' });
+        this.suspending.set(false);
+      },
     });
   }
 
