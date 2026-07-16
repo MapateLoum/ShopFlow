@@ -1,4 +1,5 @@
-const nodemailer = require("nodemailer");
+// Envoi d'emails via l'API HTTP de Brevo (voir plus bas) — nodemailer n'est
+// plus utilisé, gardé en dépendance au cas où un jour on veut revenir au SMTP.
 
 // Empêche un envoi SMTP lent/bloqué (fréquent en prod) de faire attendre
 // indéfiniment une requête qui a besoin de savoir si l'email est parti (ex: OTP).
@@ -9,16 +10,41 @@ const withTimeout = (promise, ms = 10000) => {
   ]);
 };
 
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
+// Extrait { name, email } depuis un format "Nom <email@ex.com>" ou juste "email@ex.com"
+const parseFrom = (fromStr) => {
+  const match = fromStr && fromStr.match(/^(.*)<(.+)>$/);
+  if (match) return { name: match[1].trim().replace(/^"|"$/g, ""), email: match[2].trim() };
+  return { email: (fromStr || "").trim() };
+};
+
+// Envoi via l'API HTTP de Brevo (pas de SMTP) — Render bloque les connexions
+// SMTP sortantes, l'API HTTP classique passe sans souci.
+// On garde la même forme d'appel que Nodemailer (`transporter.sendMail({...})`)
+// pour ne rien changer ailleurs dans ce fichier.
+const transporter = {
+  sendMail: async ({ from, to, subject, html }) => {
+    const sender = parseFrom(from || process.env.MAIL_FROM);
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Brevo API error ${response.status}: ${errBody}`);
+    }
+    return response.json();
   },
-});
+};
 
 const sendOTPEmail = async (to, name, otp, type = "register") => {
   const subject =
