@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../utils/prisma");
 const { generateOTP, generateToken, otpExpiresAt } = require("../utils/auth.utils");
-const { sendOTPEmail } = require("../emails/mailer");
+const { sendOTPEmail, withTimeout } = require("../emails/mailer");
 const slugify = require("slugify");
 
 // ─── SELLER REGISTER (step 1: envoie OTP) ────────────────────────────────────
@@ -40,7 +40,12 @@ const sellerRegister = async (req, res) => {
       },
     });
 
-    await sendOTPEmail(email, name, otp, "register");
+    try {
+      await withTimeout(sendOTPEmail(email, name, otp, "register"), 10000);
+    } catch (mailErr) {
+      console.error("Échec/lenteur envoi OTP inscription:", mailErr.message);
+      return res.status(502).json({ success: false, message: "Compte créé, mais l'envoi de l'email a échoué. Réessayez la vérification depuis la page de connexion." });
+    }
     res.status(201).json({ success: true, message: "Code OTP envoyé à votre email", sellerId: seller.id });
   } catch (err) {
     console.error(err);
@@ -134,7 +139,12 @@ const forgotPassword = async (req, res) => {
       data: { otpCode: otp, otpExpiresAt: otpExpiresAt() },
     });
 
-    await sendOTPEmail(email, seller.name, otp, "reset");
+    try {
+      await withTimeout(sendOTPEmail(email, seller.name, otp, "reset"), 10000);
+    } catch (mailErr) {
+      console.error("Échec/lenteur envoi OTP reset:", mailErr.message);
+      return res.status(502).json({ success: false, message: "L'envoi de l'email a échoué ou a pris trop de temps. Réessayez dans un instant." });
+    }
     res.json({ success: true, message: "Code OTP envoyé à votre email", sellerId: seller.id });
   } catch (err) {
     res.status(500).json({ success: false, message: "Erreur lors de l'envoi" });

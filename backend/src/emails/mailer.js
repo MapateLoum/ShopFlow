@@ -1,5 +1,14 @@
 const nodemailer = require("nodemailer");
 
+// Empêche un envoi SMTP lent/bloqué (fréquent en prod) de faire attendre
+// indéfiniment une requête qui a besoin de savoir si l'email est parti (ex: OTP).
+const withTimeout = (promise, ms = 10000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Envoi email trop long (timeout)")), ms)),
+  ]);
+};
+
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
   port: 587,
@@ -253,4 +262,4 @@ const sendOrdersAccessEmail = async (to, name, link) => {
   });
 };
 
-module.exports = { sendOTPEmail, sendWelcomeEmail, sendPaymentConfirmedEmail, sendPaymentRejectedEmail, sendOrdersAccessEmail };
+module.exports = { sendOTPEmail, sendWelcomeEmail, sendPaymentConfirmedEmail, sendPaymentRejectedEmail, sendOrdersAccessEmail, withTimeout };

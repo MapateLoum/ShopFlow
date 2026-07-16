@@ -127,22 +127,21 @@ const confirmPayment = async (req, res) => {
     }
     const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "PAID" } });
 
-    // L'email ne doit jamais faire planter la confirmation elle-même si l'envoi échoue
-    try {
-      const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
-      await sendPaymentConfirmedEmail(order.client.email, order.client.name, {
-        orderId: order.id,
-        storeName: order.store.name,
-        amount: order.totalAmount,
-        trackingUrl,
-      });
-    } catch (mailErr) {
-      console.error("Échec envoi email confirmation paiement:", mailErr.message);
-    }
-
+    // On répond tout de suite : l'email ne doit jamais faire attendre le vendeur
+    // ni bloquer sa page si le SMTP est lent ou coincé (fréquent en prod).
     res.json({ success: true, order: updated });
+
+    const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
+    sendPaymentConfirmedEmail(order.client.email, order.client.name, {
+      orderId: order.id,
+      storeName: order.store.name,
+      amount: order.totalAmount,
+      trackingUrl,
+    }).catch((mailErr) => {
+      console.error("Échec envoi email confirmation paiement:", mailErr.message);
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Erreur" });
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Erreur" });
   }
 };
 
@@ -160,21 +159,19 @@ const rejectPayment = async (req, res) => {
     }
     const updated = await prisma.order.update({ where: { id }, data: { paymentStatus: "UNPAID" } });
 
-    try {
-      const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
-      await sendPaymentRejectedEmail(order.client.email, order.client.name, {
-        orderId: order.id,
-        storeName: order.store.name,
-        amount: order.totalAmount,
-        trackingUrl,
-      });
-    } catch (mailErr) {
-      console.error("Échec envoi email rejet paiement:", mailErr.message);
-    }
-
     res.json({ success: true, order: updated });
+
+    const trackingUrl = `${process.env.FRONTEND_URL}/commande/${order.id}`;
+    sendPaymentRejectedEmail(order.client.email, order.client.name, {
+      orderId: order.id,
+      storeName: order.store.name,
+      amount: order.totalAmount,
+      trackingUrl,
+    }).catch((mailErr) => {
+      console.error("Échec envoi email rejet paiement:", mailErr.message);
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Erreur" });
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Erreur" });
   }
 };
 
@@ -229,19 +226,21 @@ const requestOrderHistory = async (req, res) => {
     if (!email) return res.status(400).json({ success: false, message: "Email requis" });
 
     const client = await prisma.client.findFirst({ where: { email } });
+
+    // On répond tout de suite, sans attendre l'envoi de l'email : si le SMTP est lent
+    // ou bloque (fréquent en prod selon l'hébergeur), ça ne doit jamais faire tourner
+    // la page du client indéfiniment. L'email part en arrière-plan, sans bloquer.
+    res.json({ success: true, message: "Si cet email a déjà commandé, un lien vient d'être envoyé." });
+
     if (client) {
       const token = generateShortToken({ email, type: "ORDER_HISTORY" }, "30m");
       const link = `${process.env.FRONTEND_URL}/mes-commandes?token=${token}`;
-      try {
-        await sendOrdersAccessEmail(email, client.name, link);
-      } catch (mailErr) {
+      sendOrdersAccessEmail(email, client.name, link).catch((mailErr) => {
         console.error("Échec envoi email historique commandes:", mailErr.message);
-      }
+      });
     }
-
-    res.json({ success: true, message: "Si cet email a déjà commandé, un lien vient d'être envoyé." });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Erreur" });
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Erreur" });
   }
 };
 
